@@ -1,0 +1,6 @@
+{
+  "imports": {
+    "papaparse": "https://esm.sh/papaparse@5.5.3",
+    "xlsx": "https://esm.sh/xlsx@0.18.5"
+  }
+}
