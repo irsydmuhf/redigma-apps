@@ -2,7 +2,6 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentLmsUser } from "@/lib/lms/current-user";
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 async function requireManagerOrAdmin() {
@@ -48,14 +47,13 @@ export async function updateProgram(programId: string, formData: FormData) {
     .eq("id", programId);
 
   if (error) throw new Error(error.message);
-  revalidatePath(`/lms/manager/programs/${programId}/edit`);
+  redirect(`/lms/manager/programs/${programId}/edit`);
 }
 
 export async function duplicateProgram(programId: string) {
-  await requireManagerOrAdmin();
+  const me = await requireManagerOrAdmin();
   const admin = createAdminClient();
 
-  // Ambil program + seluruh struktur
   const { data: prog } = await admin
     .from("lms_programs")
     .select(`
@@ -73,8 +71,6 @@ export async function duplicateProgram(programId: string) {
     .single();
 
   if (!prog) throw new Error("Program tidak ditemukan.");
-
-  const me = await requireManagerOrAdmin();
 
   const { data: newProg, error: progErr } = await admin
     .from("lms_programs")
@@ -120,18 +116,17 @@ export async function duplicateProgram(programId: string) {
 
       if (mod.lms_module_content?.length) {
         await admin.from("lms_module_content").insert(
-          mod.lms_module_content.map((c: any) => ({ ...c, module_id: newMod.id }))
+          mod.lms_module_content.map((c: any) => ({ ...c, id: undefined, module_id: newMod.id }))
         );
       }
       if (mod.lms_module_tasks?.length) {
         await admin.from("lms_module_tasks").insert(
-          mod.lms_module_tasks.map((t: any) => ({ ...t, module_id: newMod.id }))
+          mod.lms_module_tasks.map((t: any) => ({ ...t, id: undefined, module_id: newMod.id }))
         );
       }
     }
   }
 
-  revalidatePath("/lms/manager/programs");
   redirect(`/lms/manager/programs/${newProg.id}/edit`);
 }
 
@@ -156,14 +151,14 @@ export async function addPhase(programId: string, formData: FormData) {
     order_index: (last?.order_index ?? -1) + 1,
   });
 
-  revalidatePath(`/lms/manager/programs/${programId}/edit`);
+  redirect(`/lms/manager/programs/${programId}/edit`);
 }
 
 export async function deletePhase(phaseId: string, programId: string) {
   await requireManagerOrAdmin();
   const admin = createAdminClient();
   await admin.from("lms_program_phases").delete().eq("id", phaseId);
-  revalidatePath(`/lms/manager/programs/${programId}/edit`);
+  redirect(`/lms/manager/programs/${programId}/edit`);
 }
 
 // ── MODULES ──────────────────────────────────────────────────
@@ -188,14 +183,14 @@ export async function addModule(phaseId: string, programId: string, formData: Fo
     order_index: (last?.order_index ?? -1) + 1,
   });
 
-  revalidatePath(`/lms/manager/programs/${programId}/edit`);
+  redirect(`/lms/manager/programs/${programId}/edit`);
 }
 
 export async function deleteModule(moduleId: string, programId: string) {
   await requireManagerOrAdmin();
   const admin = createAdminClient();
   await admin.from("lms_program_modules").delete().eq("id", moduleId);
-  revalidatePath(`/lms/manager/programs/${programId}/edit`);
+  redirect(`/lms/manager/programs/${programId}/edit`);
 }
 
 // ── CONTENT ──────────────────────────────────────────────────
@@ -223,14 +218,14 @@ export async function addContent(moduleId: string, programId: string, formData: 
     order_index: (last?.order_index ?? -1) + 1,
   });
 
-  revalidatePath(`/lms/manager/programs/${programId}/edit`);
+  redirect(`/lms/manager/programs/${programId}/edit`);
 }
 
 export async function deleteContent(contentId: string, programId: string) {
   await requireManagerOrAdmin();
   const admin = createAdminClient();
   await admin.from("lms_module_content").delete().eq("id", contentId);
-  revalidatePath(`/lms/manager/programs/${programId}/edit`);
+  redirect(`/lms/manager/programs/${programId}/edit`);
 }
 
 // ── TASKS ────────────────────────────────────────────────────
@@ -256,12 +251,12 @@ export async function addTask(moduleId: string, programId: string, formData: For
     order_index: (last?.order_index ?? -1) + 1,
   });
 
-  revalidatePath(`/lms/manager/programs/${programId}/edit`);
+  redirect(`/lms/manager/programs/${programId}/edit`);
 }
 
 export async function deleteTask(taskId: string, programId: string) {
   await requireManagerOrAdmin();
   const admin = createAdminClient();
   await admin.from("lms_module_tasks").delete().eq("id", taskId);
-  revalidatePath(`/lms/manager/programs/${programId}/edit`);
+  redirect(`/lms/manager/programs/${programId}/edit`);
 }

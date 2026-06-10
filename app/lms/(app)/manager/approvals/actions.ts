@@ -2,7 +2,7 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentLmsUser } from "@/lib/lms/current-user";
-import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 export async function approveEnrollment(enrollmentId: string) {
   const me = await getCurrentLmsUser();
@@ -26,8 +26,7 @@ export async function approveEnrollment(enrollmentId: string) {
   // Init module progress untuk ADV yang baru diapprove
   await admin.rpc("lms_init_module_progress", { p_enrollment_id: enrollmentId });
 
-  revalidatePath("/lms/manager/approvals");
-  revalidatePath("/lms/manager/dashboard");
+  redirect("/lms/manager/approvals");
 }
 
 export async function rejectEnrollment(enrollmentId: string) {
@@ -44,6 +43,5 @@ export async function rejectEnrollment(enrollmentId: string) {
     .eq("status", "pending");
 
   if (error) throw new Error(error.message);
-  revalidatePath("/lms/manager/approvals");
-  revalidatePath("/lms/manager/dashboard");
+  redirect("/lms/manager/approvals");
 }

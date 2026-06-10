@@ -2,7 +2,7 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentLmsUser } from "@/lib/lms/current-user";
-import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { nanoid } from "nanoid";
 
 export async function generateInviteLink(programId: string) {
@@ -22,7 +22,7 @@ export async function generateInviteLink(programId: string) {
   });
 
   if (error) throw new Error(error.message);
-  revalidatePath(`/lms/manager/programs/${programId}/invite`);
+  redirect(`/lms/manager/programs/${programId}/invite`);
 }
 
 export async function deactivateInviteLink(linkId: string, programId: string) {
@@ -38,5 +38,5 @@ export async function deactivateInviteLink(linkId: string, programId: string) {
     .eq("id", linkId);
 
   if (error) throw new Error(error.message);
-  revalidatePath(`/lms/manager/programs/${programId}/invite`);
+  redirect(`/lms/manager/programs/${programId}/invite`);
 }
