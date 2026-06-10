@@ -12,6 +12,7 @@ import type { LmsRole } from "@/lib/lms/current-user";
 
 const ADV_NAV = [
   { href: "/lms/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/lms/programs", label: "Program Saya", icon: BookOpen },
   { href: "/lms/profile", label: "Profil Saya", icon: GraduationCap },
 ];
 
