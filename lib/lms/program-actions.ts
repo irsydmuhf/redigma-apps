@@ -8,6 +8,11 @@ function editUrl(programId: string, msg: string) {
   return `/lms/manager/programs/${programId}/edit?msg=${encodeURIComponent(msg)}`;
 }
 
+// Redirect tanpa flash message — untuk perubahan kecil/mikro (tambah/hapus item)
+function editPath(programId: string) {
+  return `/lms/manager/programs/${programId}/edit`;
+}
+
 async function requireManagerOrAdmin() {
   const me = await getCurrentLmsUser();
   if (!me || (me.role !== "manager" && me.role !== "admin")) {
@@ -155,14 +160,14 @@ export async function addPhase(programId: string, formData: FormData) {
     order_index: (last?.order_index ?? -1) + 1,
   });
 
-  redirect(editUrl(programId, 'Phase berhasil ditambahkan'));
+  redirect(editPath(programId));
 }
 
 export async function deletePhase(phaseId: string, programId: string) {
   await requireManagerOrAdmin();
   const admin = createAdminClient();
   await admin.from("lms_program_phases").delete().eq("id", phaseId);
-  redirect(editUrl(programId, 'Phase berhasil dihapus'));
+  redirect(editPath(programId));
 }
 
 // ── MODULES ──────────────────────────────────────────────────
@@ -187,14 +192,14 @@ export async function addModule(phaseId: string, programId: string, formData: Fo
     order_index: (last?.order_index ?? -1) + 1,
   });
 
-  redirect(editUrl(programId, 'Modul berhasil ditambahkan'));
+  redirect(editPath(programId));
 }
 
 export async function deleteModule(moduleId: string, programId: string) {
   await requireManagerOrAdmin();
   const admin = createAdminClient();
   await admin.from("lms_program_modules").delete().eq("id", moduleId);
-  redirect(editUrl(programId, 'Modul berhasil dihapus'));
+  redirect(editPath(programId));
 }
 
 // ── CONTENT ──────────────────────────────────────────────────
@@ -222,14 +227,14 @@ export async function addContent(moduleId: string, programId: string, formData: 
     order_index: (last?.order_index ?? -1) + 1,
   });
 
-  redirect(editUrl(programId, 'Konten berhasil ditambahkan'));
+  redirect(editPath(programId));
 }
 
 export async function deleteContent(contentId: string, programId: string) {
   await requireManagerOrAdmin();
   const admin = createAdminClient();
   await admin.from("lms_module_content").delete().eq("id", contentId);
-  redirect(editUrl(programId, 'Konten berhasil dihapus'));
+  redirect(editPath(programId));
 }
 
 // ── TASKS ────────────────────────────────────────────────────
@@ -255,14 +260,14 @@ export async function addTask(moduleId: string, programId: string, formData: For
     order_index: (last?.order_index ?? -1) + 1,
   });
 
-  redirect(editUrl(programId, 'Task berhasil ditambahkan'));
+  redirect(editPath(programId));
 }
 
 export async function deleteTask(taskId: string, programId: string) {
   await requireManagerOrAdmin();
   const admin = createAdminClient();
   await admin.from("lms_module_tasks").delete().eq("id", taskId);
-  redirect(editUrl(programId, 'Task berhasil dihapus'));
+  redirect(editPath(programId));
 }
 
 // ── POST-TEST ─────────────────────────────────────────────────
@@ -271,14 +276,14 @@ export async function createPostTest(moduleId: string, programId: string) {
   await requireManagerOrAdmin();
   const admin = createAdminClient();
   await admin.from("lms_post_tests").insert({ module_id: moduleId, pass_score: 80, max_attempts: 3 });
-  redirect(editUrl(programId, 'Post-test berhasil dibuat'));
+  redirect(editPath(programId));
 }
 
 export async function deletePostTest(postTestId: string, programId: string) {
   await requireManagerOrAdmin();
   const admin = createAdminClient();
   await admin.from("lms_post_tests").delete().eq("id", postTestId);
-  redirect(editUrl(programId, 'Post-test berhasil dihapus'));
+  redirect(editPath(programId));
 }
 
 export async function addQuestion(postTestId: string, programId: string, formData: FormData) {
@@ -296,14 +301,14 @@ export async function addQuestion(postTestId: string, programId: string, formDat
     question_text: String(formData.get("question_text")).trim(),
     order_index: (last?.order_index ?? -1) + 1,
   });
-  redirect(editUrl(programId, 'Soal berhasil ditambahkan'));
+  redirect(editPath(programId));
 }
 
 export async function deleteQuestion(questionId: string, programId: string) {
   await requireManagerOrAdmin();
   const admin = createAdminClient();
   await admin.from("lms_post_test_questions").delete().eq("id", questionId);
-  redirect(editUrl(programId, 'Soal berhasil dihapus'));
+  redirect(editPath(programId));
 }
 
 export async function addOption(questionId: string, programId: string, formData: FormData) {
@@ -322,14 +327,14 @@ export async function addOption(questionId: string, programId: string, formData:
     is_correct: formData.get("is_correct") === "on",
     order_index: (last?.order_index ?? -1) + 1,
   });
-  redirect(editUrl(programId, 'Pilihan berhasil ditambahkan'));
+  redirect(editPath(programId));
 }
 
 export async function deleteOption(optionId: string, programId: string) {
   await requireManagerOrAdmin();
   const admin = createAdminClient();
   await admin.from("lms_post_test_options").delete().eq("id", optionId);
-  redirect(editUrl(programId, 'Pilihan berhasil dihapus'));
+  redirect(editPath(programId));
 }
 
 export async function setCorrectOption(optionId: string, questionId: string, programId: string) {
@@ -337,7 +342,7 @@ export async function setCorrectOption(optionId: string, questionId: string, pro
   const admin = createAdminClient();
   await admin.from("lms_post_test_options").update({ is_correct: false }).eq("question_id", questionId);
   await admin.from("lms_post_test_options").update({ is_correct: true }).eq("id", optionId);
-  redirect(editUrl(programId, 'Jawaban benar berhasil diatur'));
+  redirect(editPath(programId));
 }
 
 // ── MILESTONES ────────────────────────────────────────────────
@@ -360,12 +365,12 @@ export async function createMilestone(programId: string, formData: FormData) {
     emoji: String(formData.get("emoji") ?? "🏆").trim() || "🏆",
     order_index: (last?.order_index ?? -1) + 1,
   });
-  redirect(editUrl(programId, 'Milestone berhasil ditambahkan'));
+  redirect(editPath(programId));
 }
 
 export async function deleteMilestone(milestoneId: string, programId: string) {
   await requireManagerOrAdmin();
   const admin = createAdminClient();
   await admin.from("lms_milestones").delete().eq("id", milestoneId);
-  redirect(editUrl(programId, 'Milestone berhasil dihapus'));
+  redirect(editPath(programId));
 }
