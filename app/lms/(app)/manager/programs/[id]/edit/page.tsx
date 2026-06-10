@@ -12,11 +12,16 @@ import {
   addOption, deleteOption, setCorrectOption,
 } from "@/lib/lms/program-actions";
 import { Copy, Trash2, Plus, BookOpen, FileText, Video, Paperclip, CheckSquare, HelpCircle, Check } from "lucide-react";
+import { FlashMessage } from "@/components/lms/ui/flash-message";
 
-interface Props { params: Promise<{ id: string }> }
+interface Props {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ msg?: string }>;
+}
 
-export default async function EditProgramPage({ params }: Props) {
+export default async function EditProgramPage({ params, searchParams }: Props) {
   const { id: programId } = await params;
+  const { msg } = await searchParams;
   const admin = createAdminClient();
 
   const { data: program } = await admin
@@ -48,6 +53,7 @@ export default async function EditProgramPage({ params }: Props) {
 
   return (
     <div className="space-y-8 pb-16">
+      <FlashMessage message={msg} />
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-1">

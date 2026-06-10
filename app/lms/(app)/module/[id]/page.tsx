@@ -8,10 +8,11 @@ import {
   CheckCircle2, XCircle, Clock, FileText, Video, Paperclip,
   ChevronLeft, Upload, Link2, HelpCircle, AlertCircle, RotateCcw,
 } from "lucide-react";
+import { FlashMessage } from "@/components/lms/ui/flash-message";
 
 interface Props {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ tab?: string; score?: string }>;
+  searchParams: Promise<{ tab?: string; score?: string; msg?: string }>;
 }
 
 const STATUS_BADGE = {
@@ -22,7 +23,7 @@ const STATUS_BADGE = {
 
 export default async function ModulePage({ params, searchParams }: Props) {
   const { id: moduleId } = await params;
-  const { tab: tabParam, score: scoreParam } = await searchParams;
+  const { tab: tabParam, score: scoreParam, msg } = await searchParams;
   const tab = tabParam ?? "materi";
 
   const user = await getCurrentLmsUser();
@@ -170,6 +171,8 @@ export default async function ModulePage({ params, searchParams }: Props) {
 
   return (
     <div className="max-w-3xl space-y-6 pb-16">
+      <FlashMessage message={msg} />
+
       {/* Breadcrumb */}
       <Link href={`/lms/program/${programId}`} className="flex items-center gap-1 text-sm text-neutral-500 hover:text-neutral-700">
         <ChevronLeft className="h-4 w-4" /> Kembali ke Learning Path

@@ -22,7 +22,7 @@ export async function generateInviteLink(programId: string) {
   });
 
   if (error) throw new Error(error.message);
-  redirect(`/lms/manager/programs/${programId}/invite`);
+  redirect(`/lms/manager/programs/${programId}/invite?msg=${encodeURIComponent('Link undangan berhasil dibuat')}`);
 }
 
 export async function deactivateInviteLink(linkId: string, programId: string) {
@@ -38,5 +38,5 @@ export async function deactivateInviteLink(linkId: string, programId: string) {
     .eq("id", linkId);
 
   if (error) throw new Error(error.message);
-  redirect(`/lms/manager/programs/${programId}/invite`);
+  redirect(`/lms/manager/programs/${programId}/invite?msg=${encodeURIComponent('Link berhasil dinonaktifkan')}`);
 }

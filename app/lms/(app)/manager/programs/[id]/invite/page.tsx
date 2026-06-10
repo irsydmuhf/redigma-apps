@@ -3,13 +3,16 @@ import { notFound } from "next/navigation";
 import { generateInviteLink, deactivateInviteLink } from "./actions";
 import { Link2, PlusCircle, X, Copy } from "lucide-react";
 import Link from "next/link";
+import { FlashMessage } from "@/components/lms/ui/flash-message";
 
 interface Props {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ msg?: string }>;
 }
 
-export default async function InviteLinkPage({ params }: Props) {
+export default async function InviteLinkPage({ params, searchParams }: Props) {
   const { id: programId } = await params;
+  const { msg } = await searchParams;
   const admin = createAdminClient();
 
   const [{ data: program }, { data: links }] = await Promise.all([
@@ -33,6 +36,7 @@ export default async function InviteLinkPage({ params }: Props) {
 
   return (
     <div className="space-y-6">
+      <FlashMessage message={msg} />
       <div className="flex items-center gap-3">
         <Link
           href="/lms/manager/programs"

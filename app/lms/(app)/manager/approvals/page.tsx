@@ -2,8 +2,14 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { approveEnrollment, rejectEnrollment } from "./actions";
 import { approveSubmission, rejectSubmission } from "@/app/lms/(app)/module/[id]/actions";
 import { CheckCircle2, XCircle, Clock, Upload, Link2 } from "lucide-react";
+import { FlashMessage } from "@/components/lms/ui/flash-message";
 
-export default async function LmsApprovalsPage() {
+export default async function LmsApprovalsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ msg?: string }>;
+}) {
+  const { msg } = await searchParams;
   const admin = createAdminClient();
 
   // ── Enrollments pending ───────────────────────────────────
@@ -68,6 +74,7 @@ export default async function LmsApprovalsPage() {
 
   return (
     <div className="space-y-8">
+      <FlashMessage message={msg} />
       <div className="space-y-1">
         <h1 className="text-3xl font-bold tracking-tight text-neutral-900">Persetujuan</h1>
         <p className="text-sm text-neutral-600">

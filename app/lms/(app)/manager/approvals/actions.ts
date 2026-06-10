@@ -26,7 +26,7 @@ export async function approveEnrollment(enrollmentId: string) {
   // Init module progress untuk ADV yang baru diapprove
   await admin.rpc("lms_init_module_progress", { p_enrollment_id: enrollmentId });
 
-  redirect("/lms/manager/approvals");
+  redirect(`/lms/manager/approvals?msg=${encodeURIComponent('Enrollment berhasil disetujui')}`);
 }
 
 export async function rejectEnrollment(enrollmentId: string) {
@@ -43,5 +43,5 @@ export async function rejectEnrollment(enrollmentId: string) {
     .eq("status", "pending");
 
   if (error) throw new Error(error.message);
-  redirect("/lms/manager/approvals");
+  redirect(`/lms/manager/approvals?msg=${encodeURIComponent('Enrollment berhasil ditolak')}`);
 }

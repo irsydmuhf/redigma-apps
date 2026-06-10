@@ -55,7 +55,7 @@ export async function submitTask(
     p_module_id: moduleId,
   });
 
-  redirect(`/lms/module/${moduleId}`);
+  redirect(`/lms/module/${moduleId}?tab=tasks&msg=${encodeURIComponent('Task berhasil disubmit, menunggu review Manager')}`);
 }
 
 export async function approveSubmission(submissionId: string, moduleId: string) {
@@ -99,7 +99,7 @@ export async function approveSubmission(submissionId: string, moduleId: string) 
     });
   }
 
-  redirect("/lms/manager/approvals");
+  redirect(`/lms/manager/approvals?msg=${encodeURIComponent('Submission berhasil disetujui')}`);
 }
 
 export async function rejectSubmission(submissionId: string, formData: FormData) {
@@ -123,7 +123,7 @@ export async function rejectSubmission(submissionId: string, formData: FormData)
     .eq("id", submissionId);
 
   if (error) throw new Error(error.message);
-  redirect("/lms/manager/approvals");
+  redirect(`/lms/manager/approvals?msg=${encodeURIComponent('Submission berhasil ditolak')}`);
 }
 
 export async function startPostTest(postTestId: string, enrollmentId: string, moduleId: string) {
