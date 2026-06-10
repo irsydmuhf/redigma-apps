@@ -260,3 +260,78 @@ export async function deleteTask(taskId: string, programId: string) {
   await admin.from("lms_module_tasks").delete().eq("id", taskId);
   redirect(`/lms/manager/programs/${programId}/edit`);
 }
+
+// ── POST-TEST ─────────────────────────────────────────────────
+
+export async function createPostTest(moduleId: string, programId: string) {
+  await requireManagerOrAdmin();
+  const admin = createAdminClient();
+  await admin.from("lms_post_tests").insert({ module_id: moduleId, pass_score: 80, max_attempts: 3 });
+  redirect(`/lms/manager/programs/${programId}/edit`);
+}
+
+export async function deletePostTest(postTestId: string, programId: string) {
+  await requireManagerOrAdmin();
+  const admin = createAdminClient();
+  await admin.from("lms_post_tests").delete().eq("id", postTestId);
+  redirect(`/lms/manager/programs/${programId}/edit`);
+}
+
+export async function addQuestion(postTestId: string, programId: string, formData: FormData) {
+  await requireManagerOrAdmin();
+  const admin = createAdminClient();
+  const { data: last } = await admin
+    .from("lms_post_test_questions")
+    .select("order_index")
+    .eq("post_test_id", postTestId)
+    .order("order_index", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  await admin.from("lms_post_test_questions").insert({
+    post_test_id: postTestId,
+    question_text: String(formData.get("question_text")).trim(),
+    order_index: (last?.order_index ?? -1) + 1,
+  });
+  redirect(`/lms/manager/programs/${programId}/edit`);
+}
+
+export async function deleteQuestion(questionId: string, programId: string) {
+  await requireManagerOrAdmin();
+  const admin = createAdminClient();
+  await admin.from("lms_post_test_questions").delete().eq("id", questionId);
+  redirect(`/lms/manager/programs/${programId}/edit`);
+}
+
+export async function addOption(questionId: string, programId: string, formData: FormData) {
+  await requireManagerOrAdmin();
+  const admin = createAdminClient();
+  const { data: last } = await admin
+    .from("lms_post_test_options")
+    .select("order_index")
+    .eq("question_id", questionId)
+    .order("order_index", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  await admin.from("lms_post_test_options").insert({
+    question_id: questionId,
+    option_text: String(formData.get("option_text")).trim(),
+    is_correct: formData.get("is_correct") === "on",
+    order_index: (last?.order_index ?? -1) + 1,
+  });
+  redirect(`/lms/manager/programs/${programId}/edit`);
+}
+
+export async function deleteOption(optionId: string, programId: string) {
+  await requireManagerOrAdmin();
+  const admin = createAdminClient();
+  await admin.from("lms_post_test_options").delete().eq("id", optionId);
+  redirect(`/lms/manager/programs/${programId}/edit`);
+}
+
+export async function setCorrectOption(optionId: string, questionId: string, programId: string) {
+  await requireManagerOrAdmin();
+  const admin = createAdminClient();
+  await admin.from("lms_post_test_options").update({ is_correct: false }).eq("question_id", questionId);
+  await admin.from("lms_post_test_options").update({ is_correct: true }).eq("id", optionId);
+  redirect(`/lms/manager/programs/${programId}/edit`);
+}

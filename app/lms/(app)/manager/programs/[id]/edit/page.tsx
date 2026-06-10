@@ -7,8 +7,11 @@ import {
   addContent, deleteContent,
   addTask, deleteTask,
   updateProgram, duplicateProgram,
+  createPostTest, deletePostTest,
+  addQuestion, deleteQuestion,
+  addOption, deleteOption, setCorrectOption,
 } from "@/lib/lms/program-actions";
-import { Copy, Trash2, Plus, BookOpen, FileText, Video, Paperclip, CheckSquare } from "lucide-react";
+import { Copy, Trash2, Plus, BookOpen, FileText, Video, Paperclip, CheckSquare, HelpCircle, Check } from "lucide-react";
 
 interface Props { params: Promise<{ id: string }> }
 
@@ -25,7 +28,14 @@ export default async function EditProgramPage({ params }: Props) {
         lms_program_modules (
           id, title, description, order_index, estimated_days,
           lms_module_content (id, type, content_text, video_url, file_url, file_name, order_index),
-          lms_module_tasks (id, title, description, requires_screenshot, requires_link, order_index)
+          lms_module_tasks (id, title, description, requires_screenshot, requires_link, order_index),
+          lms_post_tests (
+            id, pass_score, max_attempts,
+            lms_post_test_questions (
+              id, question_text, order_index,
+              lms_post_test_options (id, option_text, is_correct, order_index)
+            )
+          )
         )
       )
     `)
@@ -126,6 +136,13 @@ export default async function EditProgramPage({ params }: Props) {
                 {modules.map((mod) => {
                   const contents = [...(mod.lms_module_content ?? [])].sort((a, b) => a.order_index - b.order_index);
                   const tasks = [...(mod.lms_module_tasks ?? [])].sort((a, b) => a.order_index - b.order_index);
+                  const postTest = Array.isArray(mod.lms_post_tests)
+                    ? mod.lms_post_tests[0]
+                    : mod.lms_post_tests ?? null;
+                  const questions = [...((postTest as any)?.lms_post_test_questions ?? [])].sort(
+                    (a: any, b: any) => a.order_index - b.order_index
+                  );
+
                   return (
                     <div key={mod.id} className="rounded-2xl border border-neutral-100 bg-neutral-50 overflow-hidden">
                       {/* Module header */}
@@ -247,6 +264,95 @@ export default async function EditProgramPage({ params }: Props) {
                             </button>
                           </form>
                         </details>
+
+                        {/* ── Post-Test ── */}
+                        <div className="border-t border-neutral-200 pt-4 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide flex items-center gap-1.5">
+                              <HelpCircle className="h-3.5 w-3.5" /> Post-Test
+                            </p>
+                            {!postTest && (
+                              <form action={createPostTest.bind(null, mod.id, programId)}>
+                                <button type="submit" className="flex items-center gap-1 rounded-xl bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 hover:bg-amber-100">
+                                  <Plus className="h-3 w-3" /> Buat Post-Test
+                                </button>
+                              </form>
+                            )}
+                            {postTest && (
+                              <form action={deletePostTest.bind(null, (postTest as any).id, programId)}>
+                                <button type="submit" className="rounded-xl px-2.5 py-1 text-xs text-red-500 hover:bg-red-50">
+                                  Hapus Post-Test
+                                </button>
+                              </form>
+                            )}
+                          </div>
+
+                          {postTest && (
+                            <div className="space-y-3">
+                              <p className="text-xs text-neutral-500">
+                                Lulus ≥{(postTest as any).pass_score}% · Maks. {(postTest as any).max_attempts}x percobaan
+                              </p>
+
+                              {/* Questions */}
+                              {questions.map((q: any, qi: number) => {
+                                const opts = [...(q.lms_post_test_options ?? [])].sort((a: any, b: any) => a.order_index - b.order_index);
+                                return (
+                                  <div key={q.id} className="rounded-xl border border-neutral-200 bg-white p-3 space-y-2">
+                                    <div className="flex items-start justify-between gap-2">
+                                      <p className="text-xs font-medium text-neutral-800">
+                                        <span className="text-neutral-400">S{qi + 1}.</span> {q.question_text}
+                                      </p>
+                                      <form action={deleteQuestion.bind(null, q.id, programId)}>
+                                        <button type="submit" className="shrink-0 text-neutral-300 hover:text-red-500">
+                                          <Trash2 className="h-3.5 w-3.5" />
+                                        </button>
+                                      </form>
+                                    </div>
+
+                                    {/* Options */}
+                                    <div className="space-y-1 pl-3">
+                                      {opts.map((opt: any) => (
+                                        <div key={opt.id} className="flex items-center gap-2">
+                                          <form action={setCorrectOption.bind(null, opt.id, q.id, programId)}>
+                                            <button type="submit" className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${opt.is_correct ? "border-green-500 bg-green-500 text-white" : "border-neutral-300 hover:border-green-400"}`}>
+                                              {opt.is_correct && <Check className="h-2.5 w-2.5" />}
+                                            </button>
+                                          </form>
+                                          <span className="flex-1 text-xs text-neutral-700">{opt.option_text}</span>
+                                          <form action={deleteOption.bind(null, opt.id, programId)}>
+                                            <button type="submit" className="text-neutral-300 hover:text-red-500">
+                                              <Trash2 className="h-3 w-3" />
+                                            </button>
+                                          </form>
+                                        </div>
+                                      ))}
+
+                                      {/* Add option */}
+                                      <form action={addOption.bind(null, q.id, programId)} className="flex items-center gap-2 pt-1">
+                                        <input name="option_text" placeholder="Tambah pilihan…" required
+                                          className="flex-1 rounded-lg border border-neutral-200 px-2 py-1 text-xs outline-none" />
+                                        <label className="flex items-center gap-1 text-xs text-neutral-500 shrink-0">
+                                          <input type="checkbox" name="is_correct" className="rounded" />
+                                          Benar
+                                        </label>
+                                        <button type="submit" className="rounded-lg bg-neutral-900 px-2 py-1 text-xs font-semibold text-white shrink-0">+</button>
+                                      </form>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+
+                              {/* Add question */}
+                              <form action={addQuestion.bind(null, (postTest as any).id, programId)} className="flex gap-2">
+                                <input name="question_text" placeholder="Tambah soal baru…" required
+                                  className="flex-1 rounded-xl border border-neutral-200 px-3 py-2 text-xs outline-none" />
+                                <button type="submit" className="rounded-xl bg-amber-500 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-600 shrink-0">
+                                  + Soal
+                                </button>
+                              </form>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   );

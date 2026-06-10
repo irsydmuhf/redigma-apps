@@ -125,3 +125,50 @@ export async function rejectSubmission(submissionId: string, formData: FormData)
   if (error) throw new Error(error.message);
   redirect("/lms/manager/approvals");
 }
+
+export async function startPostTest(postTestId: string, enrollmentId: string, moduleId: string) {
+  const me = await getCurrentLmsUser();
+  if (!me || me.role !== "adv") throw new Error("Tidak punya akses.");
+
+  const admin = createAdminClient();
+  const { data: attemptId, error } = await admin.rpc("lms_start_post_test", {
+    p_enrollment_id: enrollmentId,
+    p_post_test_id: postTestId,
+  });
+
+  if (error) throw new Error(error.message);
+  redirect(`/lms/module/${moduleId}?tab=posttest`);
+}
+
+export async function submitPostTest(
+  attemptId: string,
+  enrollmentId: string,
+  moduleId: string,
+  formData: FormData
+) {
+  const me = await getCurrentLmsUser();
+  if (!me || me.role !== "adv") throw new Error("Tidak punya akses.");
+
+  const admin = createAdminClient();
+
+  // Save selected answers
+  for (const [key, value] of formData.entries()) {
+    if (key.startsWith("answer_")) {
+      const answerId = key.replace("answer_", "");
+      const optionId = String(value);
+      await admin
+        .from("lms_post_test_attempt_answers")
+        .update({ selected_option_id: optionId })
+        .eq("id", answerId);
+    }
+  }
+
+  const { data: score, error } = await admin.rpc("lms_submit_post_test", {
+    p_attempt_id: attemptId,
+    p_enrollment_id: enrollmentId,
+    p_module_id: moduleId,
+  });
+
+  if (error) throw new Error(error.message);
+  redirect(`/lms/module/${moduleId}?tab=posttest&score=${score}`);
+}
