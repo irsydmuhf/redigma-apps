@@ -1,6 +1,7 @@
 "use server";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getCurrentLmsUser } from "@/lib/lms/current-user";
 import { redirect } from "next/navigation";
 
 export async function lmsRegister(formData: FormData) {
@@ -72,4 +73,41 @@ export async function lmsRegister(formData: FormData) {
   );
 
   redirect("/lms/login?registered=true");
+}
+
+// Untuk ADV yang sudah punya akun — langsung enroll ke program baru
+export async function lmsJoinProgram(formData: FormData) {
+  const token = String(formData.get("token") ?? "").trim();
+  const me = await getCurrentLmsUser();
+
+  if (!me) redirect(`/lms/login?next=/lms/register?token=${token}`);
+
+  const admin = createAdminClient();
+
+  const { data: link } = await admin
+    .from("lms_invite_links")
+    .select("id, program_id, expires_at, is_active")
+    .eq("token", token)
+    .single();
+
+  if (!link || !link.is_active) {
+    redirect(`/lms/register?token=${token}&error=link-tidak-valid`);
+  }
+  if (link.expires_at && new Date(link.expires_at) < new Date()) {
+    redirect(`/lms/register?token=${token}&error=link-kadaluarsa`);
+  }
+
+  await admin.from("lms_program_enrollments").upsert(
+    {
+      user_id: me.id,
+      program_id: link.program_id,
+      status: "pending",
+      enrolled_at: new Date().toISOString(),
+      approved_at: null,
+      approved_by: null,
+    },
+    { onConflict: "user_id,program_id" }
+  );
+
+  redirect("/lms/dashboard");
 }

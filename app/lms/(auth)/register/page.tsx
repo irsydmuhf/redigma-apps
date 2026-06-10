@@ -3,7 +3,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { TubesBackground } from "@/components/tubes-background";
-import { lmsRegister } from "./actions";
+import { lmsRegister, lmsJoinProgram } from "./actions";
+import { getCurrentLmsUser } from "@/lib/lms/current-user";
 
 function errorMsg(code: string | undefined) {
   if (!code) return null;
@@ -42,6 +43,9 @@ export default async function LmsRegisterPage({
       </TubesBackground>
     );
   }
+
+  // Cek apakah user sudah login
+  const currentUser = await getCurrentLmsUser();
 
   // Ambil info program dari token
   const admin = createAdminClient();
@@ -91,79 +95,100 @@ export default async function LmsRegisterPage({
               {program && (
                 <div className="rounded-2xl bg-neutral-50 px-4 py-3 space-y-1">
                   <p className="text-xs text-neutral-500">Program yang akan diikuti</p>
-                  <p className="text-sm font-semibold text-neutral-900">
-                    {program.name}
-                  </p>
+                  <p className="text-sm font-semibold text-neutral-900">{program.name}</p>
                   {program.description && (
                     <p className="text-xs text-neutral-600">{program.description}</p>
                   )}
                 </div>
               )}
 
-              <form action={lmsRegister} className="space-y-5">
-                <input type="hidden" name="token" value={token} />
+              {/* User sudah login — tampilkan tombol langsung join */}
+              {currentUser ? (
+                <form action={lmsJoinProgram} className="space-y-4">
+                  <input type="hidden" name="token" value={token} />
+                  <div className="rounded-2xl bg-blue-50 px-4 py-3 text-sm text-blue-800">
+                    Anda login sebagai <span className="font-semibold">{currentUser.fullName}</span>.
+                    Klik di bawah untuk mendaftar ke program ini.
+                  </div>
+                  {msg && (
+                    <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+                      {msg}
+                    </p>
+                  )}
+                  <button
+                    type="submit"
+                    className="mesh-blue h-12 w-full rounded-2xl text-sm font-semibold text-white shadow-md transition hover:opacity-90 active:translate-y-px"
+                  >
+                    Daftar ke Program Ini
+                  </button>
+                </form>
+              ) : (
+                /* User belum login — tampilkan form register */
+                <form action={lmsRegister} className="space-y-5">
+                  <input type="hidden" name="token" value={token} />
 
-                <div className="space-y-2">
-                  <Label htmlFor="full_name" className="text-sm font-medium text-neutral-700">
-                    Nama Lengkap
-                  </Label>
-                  <Input
-                    id="full_name"
-                    name="full_name"
-                    type="text"
-                    placeholder="Nama sesuai data karyawan"
-                    required
-                    className="h-12 rounded-2xl border-neutral-200 bg-white px-4 text-sm"
-                  />
-                </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="full_name" className="text-sm font-medium text-neutral-700">
+                      Nama Lengkap
+                    </Label>
+                    <Input
+                      id="full_name"
+                      name="full_name"
+                      type="text"
+                      placeholder="Nama sesuai data karyawan"
+                      required
+                      className="h-12 rounded-2xl border-neutral-200 bg-white px-4 text-sm"
+                    />
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-sm font-medium text-neutral-700">
-                    Email
-                  </Label>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    placeholder="nama@redigma.com"
-                    required
-                    autoComplete="email"
-                    className="h-12 rounded-2xl border-neutral-200 bg-white px-4 text-sm"
-                  />
-                </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email" className="text-sm font-medium text-neutral-700">
+                      Email
+                    </Label>
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      placeholder="nama@redigma.com"
+                      required
+                      autoComplete="email"
+                      className="h-12 rounded-2xl border-neutral-200 bg-white px-4 text-sm"
+                    />
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="password" className="text-sm font-medium text-neutral-700">
-                    Password
-                  </Label>
-                  <Input
-                    id="password"
-                    name="password"
-                    type="password"
-                    placeholder="Minimal 8 karakter"
-                    required
-                    autoComplete="new-password"
-                    className="h-12 rounded-2xl border-neutral-200 bg-white px-4 text-sm"
-                  />
-                </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="password" className="text-sm font-medium text-neutral-700">
+                      Password
+                    </Label>
+                    <Input
+                      id="password"
+                      name="password"
+                      type="password"
+                      placeholder="Minimal 8 karakter"
+                      required
+                      autoComplete="new-password"
+                      className="h-12 rounded-2xl border-neutral-200 bg-white px-4 text-sm"
+                    />
+                  </div>
 
-                {msg && (
-                  <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
-                    {msg}
+                  {msg && (
+                    <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+                      {msg}
+                    </p>
+                  )}
+
+                  <button
+                    type="submit"
+                    className="mesh-blue h-12 w-full rounded-2xl text-sm font-semibold text-white shadow-md transition hover:opacity-90 active:translate-y-px"
+                  >
+                    Daftar Sekarang
+                  </button>
+
+                  <p className="text-center text-xs text-neutral-500">
+                    Setelah mendaftar, akses konten akan aktif setelah Manager menyetujui.
                   </p>
-                )}
-
-                <button
-                  type="submit"
-                  className="mesh-blue h-12 w-full rounded-2xl text-sm font-semibold text-white shadow-md transition hover:opacity-90 active:translate-y-px"
-                >
-                  Daftar Sekarang
-                </button>
-
-                <p className="text-center text-xs text-neutral-500">
-                  Setelah mendaftar, akses konten akan aktif setelah Manager menyetujui.
-                </p>
-              </form>
+                </form>
+              )}
             </>
           )}
         </div>
