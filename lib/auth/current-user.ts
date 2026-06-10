@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 
@@ -22,13 +23,19 @@ export type CurrentUser = {
 
 const ACTIVE_DIVISION_COOKIE = "redigma_active_division";
 
-export async function getCurrentUser(): Promise<CurrentUser | null> {
+// cache() memastikan fungsi ini hanya dipanggil SEKALI per request,
+// meskipun layout, admin-layout, dan page semuanya memanggil getCurrentUser().
+// Tanpa ini, tiap pemanggilan membuat Supabase auth call tersendiri.
+export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   const supabase = await createClient();
 
+  // getSession() baca JWT dari cookie tanpa network call ke Supabase Auth —
+  // menghindari rate limit akibat banyak request paralel di Next.js Turbopack.
   const {
-    data: { user: authUser },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
 
+  const authUser = session?.user ?? null;
   if (!authUser) return null;
 
   const { data: profile } = await supabase
@@ -88,6 +95,6 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     isAdmin,
     isDireksi,
   };
-}
+});
 
 export { ACTIVE_DIVISION_COOKIE };

@@ -25,9 +25,14 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
+  // Gunakan getSession() bukan getUser() — tidak ada network call ke Supabase,
+  // cukup baca dan validasi JWT dari cookie. Menghindari rate limit auth API
+  // yang terjadi karena Next.js Turbopack mengirim banyak request paralel.
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  const user = session?.user ?? null;
 
   const { pathname } = request.nextUrl;
   const isAuthRoute =
