@@ -206,10 +206,7 @@ export default async function ModulePage({ params, searchParams }: Props) {
         <div className="flex items-center gap-1 rounded-full border border-neutral-100 bg-neutral-50 p-1">
           <Link href={`?tab=materi`} className={tabClass("materi")}>Materi</Link>
           <Link href={`?tab=tasks`} className={tabClass("tasks")}>Task &amp; Bukti</Link>
-          <Link
-            href={postTest ? `?tab=posttest` : "#"}
-            className={`${tabClass("posttest")} ${!postTest ? "opacity-40 pointer-events-none" : ""}`}
-          >
+          <Link href="?tab=posttest" className={tabClass("posttest")}>
             Post-Test
           </Link>
         </div>
@@ -394,6 +391,14 @@ export default async function ModulePage({ params, searchParams }: Props) {
       )}
 
       {/* ── TAB: POST-TEST ── */}
+      {tab === "posttest" && user.role === "adv" && !postTest && (
+        <div className="rounded-3xl border border-neutral-100 bg-white p-10 text-center space-y-3">
+          <HelpCircle className="mx-auto h-10 w-10 text-neutral-300" />
+          <p className="text-sm font-medium text-neutral-700">Belum ada post-test</p>
+          <p className="text-xs text-neutral-500">Manager belum mengonfigurasi post-test untuk modul ini.</p>
+        </div>
+      )}
+
       {tab === "posttest" && user.role === "adv" && postTest && (
         <div className="space-y-4">
           {/* Score result after submit */}
