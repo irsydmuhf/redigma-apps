@@ -50,7 +50,7 @@ export default async function InviteLinkPage({ params }: Props) {
             Invite Link
           </h1>
           <p className="text-sm text-neutral-600">
-            Bagikan link ini ke ADV untuk mendaftar ke program <b>{program.name}</b>.
+            Bagikan <b>token</b> ke ADV. ADV masuk ke menu <b>Ikuti Program</b> lalu tempelkan token tersebut.
           </p>
         </div>
         <form action={generateInviteLink.bind(null, programId)}>
@@ -88,14 +88,26 @@ export default async function InviteLinkPage({ params }: Props) {
             return (
               <div
                 key={link.id}
-                className="rounded-3xl border border-neutral-100 bg-white p-5 space-y-3"
+                className="rounded-3xl border border-neutral-100 bg-white p-5 space-y-4"
               >
+                {/* Token utama — bagikan ini ke ADV */}
+                <div className="space-y-1.5">
+                  <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">Token (bagikan ke ADV)</p>
+                  <div className="flex items-center gap-2 rounded-2xl bg-neutral-900 px-4 py-3">
+                    <code className="flex-1 select-all text-sm font-mono font-semibold text-white break-all">
+                      {link.token}
+                    </code>
+                    <Copy className="h-4 w-4 text-neutral-400 shrink-0" />
+                  </div>
+                </div>
+
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1 space-y-1">
-                    <p className="break-all font-mono text-xs text-neutral-700 select-all">
+                    <p className="text-[11px] text-neutral-400 font-medium">URL alternatif (opsional)</p>
+                    <p className="break-all font-mono text-xs text-neutral-500 select-all">
                       {url}
                     </p>
-                    <p className="text-xs text-neutral-500">Dibuat {createdDate}</p>
+                    <p className="text-xs text-neutral-400">Dibuat {createdDate}</p>
                   </div>
                   <form action={deactivateInviteLink.bind(null, link.id, programId)}>
                     <button

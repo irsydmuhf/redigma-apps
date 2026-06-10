@@ -7,11 +7,13 @@ import {
   Users,
   GraduationCap,
   Settings,
+  PlusCircle,
 } from "lucide-react";
 import type { LmsRole } from "@/lib/lms/current-user";
 
 const ADV_NAV = [
   { href: "/lms/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/lms/join", label: "Ikuti Program", icon: PlusCircle },
   { href: "/lms/profile", label: "Profil Saya", icon: GraduationCap },
 ];
 
