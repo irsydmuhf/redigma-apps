@@ -13,6 +13,14 @@
   --color-surface: var(--surface);
   --color-border: var(--border);
   --font-sans: var(--font-roboto);
+  --font-funnel: var(--font-funnel);
+}
+
+/* Funnel Display untuk heading di LMS */
+.lms-content h1,
+.lms-content h2 {
+  font-family: var(--font-funnel), "Funnel Display", sans-serif;
+  letter-spacing: -0.02em;
 }
 
 body {
