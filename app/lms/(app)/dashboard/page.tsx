@@ -1,7 +1,7 @@
 import { getCurrentLmsUser } from "@/lib/lms/current-user";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { BookOpen, CheckCircle2, PlayCircle, PlusCircle, ChevronRight } from "lucide-react";
+import { BookOpen, CheckCircle2, PlayCircle, PlusCircle, ChevronRight, Trophy } from "lucide-react";
 import Link from "next/link";
 
 export default async function LmsDashboardPage() {
@@ -33,7 +33,6 @@ export default async function LmsDashboardPage() {
 
   const hasPending = (pendingEnrollments ?? []).length > 0;
 
-  // Jika tidak ada enrollment aktif
   if (!enrollment) {
     return (
       <div className="space-y-8">
@@ -75,7 +74,7 @@ export default async function LmsDashboardPage() {
     ? enrollment.lms_programs[0]
     : enrollment.lms_programs;
 
-  // Module progress dengan data modul
+  // Module progress
   const { data: progresses } = await supabase
     .from("lms_module_progress")
     .select(`
@@ -87,7 +86,6 @@ export default async function LmsDashboardPage() {
     `)
     .eq("enrollment_id", enrollment.id);
 
-  // Sort by phase order, then module order
   const sorted = (progresses ?? [])
     .filter((p) => p.lms_program_modules)
     .sort((a, b) => {
@@ -109,10 +107,44 @@ export default async function LmsDashboardPage() {
 
   const completedList = sorted.filter((p) => p.status === "completed");
 
-  // Day counter
   const startDate = enrollment.approved_at ?? enrollment.enrolled_at;
   const elapsedDays = Math.max(1, Math.floor((Date.now() - new Date(startDate).getTime()) / 86400000) + 1);
   const totalDays = sorted.reduce((acc, p) => acc + ((p.lms_program_modules as any)?.estimated_days ?? 1), 0);
+
+  // Post-test scores per completed module
+  const { data: passingAttempts } = await supabase
+    .from("lms_post_test_attempts")
+    .select("score, lms_post_tests(module_id)")
+    .eq("enrollment_id", enrollment.id)
+    .eq("passed", true);
+
+  const scoreMap: Record<string, number> = {};
+  for (const att of passingAttempts ?? []) {
+    const pt = Array.isArray(att.lms_post_tests) ? (att.lms_post_tests as any)[0] : att.lms_post_tests as any;
+    if (!pt?.module_id) continue;
+    if (!(pt.module_id in scoreMap) || (att.score ?? 0) > scoreMap[pt.module_id]) {
+      scoreMap[pt.module_id] = att.score ?? 0;
+    }
+  }
+
+  // Milestones
+  const { data: milestones } = await supabase
+    .from("lms_milestones")
+    .select("id, name, description, required_modules_completed, emoji, order_index")
+    .eq("program_id", prog?.id ?? "")
+    .order("required_modules_completed", { ascending: true });
+
+  const { data: achievedRaw } = await supabase
+    .from("lms_adv_milestones")
+    .select("milestone_id, achieved_at")
+    .eq("enrollment_id", enrollment.id)
+    .order("achieved_at", { ascending: false });
+
+  const achievedIds = new Set((achievedRaw ?? []).map((a) => a.milestone_id));
+  const achievedList = (milestones ?? []).filter((m) => achievedIds.has(m.id))
+    .sort((a, b) => b.required_modules_completed - a.required_modules_completed);
+  const nextMilestone = (milestones ?? []).find((m) => !achievedIds.has(m.id));
+  const latestAchieved = achievedList[0] ?? null;
 
   return (
     <div className="space-y-8">
@@ -154,12 +186,63 @@ export default async function LmsDashboardPage() {
           </Link>
         </div>
 
-        {/* Milestone placeholder */}
+        {/* Milestone card */}
         <div className="rounded-3xl border border-neutral-100 bg-white p-6 space-y-3">
-          <p className="text-sm font-semibold text-neutral-600">Milestone</p>
-          <p className="text-xs text-neutral-400 italic">
-            Milestone akan tersedia setelah modul pertama diselesaikan.
-          </p>
+          <div className="flex items-center gap-2">
+            <Trophy className="h-4 w-4 text-yellow-500" />
+            <p className="text-sm font-semibold text-neutral-600">Milestone</p>
+          </div>
+
+          {(milestones ?? []).length === 0 ? (
+            <p className="text-xs text-neutral-400 italic">
+              Belum ada milestone untuk program ini.
+            </p>
+          ) : latestAchieved ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 rounded-2xl bg-yellow-50 px-3 py-2.5">
+                <span className="text-xl">{latestAchieved.emoji}</span>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-yellow-800 truncate">{latestAchieved.name}</p>
+                  {latestAchieved.description && (
+                    <p className="text-xs text-yellow-700 line-clamp-1">{latestAchieved.description}</p>
+                  )}
+                </div>
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-yellow-600" />
+              </div>
+              {nextMilestone && (
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-xs text-neutral-500">
+                    <span>Berikutnya: <span className="font-medium">{nextMilestone.emoji} {nextMilestone.name}</span></span>
+                    <span>{completedModules} / {nextMilestone.required_modules_completed} modul</span>
+                  </div>
+                  <div className="h-1.5 w-full rounded-full bg-neutral-100">
+                    <div
+                      className="h-1.5 rounded-full bg-yellow-400 transition-all"
+                      style={{ width: `${Math.min(100, Math.round((completedModules / nextMilestone.required_modules_completed) * 100))}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : nextMilestone ? (
+            <div className="space-y-2">
+              <p className="text-xs text-neutral-500">Target pertama:</p>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-xs text-neutral-700">
+                  <span className="font-medium">{nextMilestone.emoji} {nextMilestone.name}</span>
+                  <span>{completedModules} / {nextMilestone.required_modules_completed} modul</span>
+                </div>
+                <div className="h-1.5 w-full rounded-full bg-neutral-100">
+                  <div
+                    className="h-1.5 rounded-full bg-yellow-400 transition-all"
+                    style={{ width: `${Math.min(100, Math.round((completedModules / nextMilestone.required_modules_completed) * 100))}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <p className="text-xs text-neutral-400 italic">Semua milestone telah diraih!</p>
+          )}
         </div>
       </div>
 
@@ -203,9 +286,10 @@ export default async function LmsDashboardPage() {
         <div className="space-y-3">
           <h2 className="text-xs font-semibold uppercase tracking-widest text-neutral-500">Modul Selesai</h2>
           <div className="space-y-2">
-            {completedList.map((p, idx) => {
+            {completedList.map((p) => {
               const mod = p.lms_program_modules as any;
               const modIdx = sorted.indexOf(p) + 1;
+              const score = scoreMap[p.module_id];
               return (
                 <div
                   key={p.module_id}
@@ -216,7 +300,15 @@ export default async function LmsDashboardPage() {
                     <p className="text-sm font-medium text-neutral-900">{mod?.title}</p>
                     <p className="text-xs text-neutral-400">Modul {modIdx}</p>
                   </div>
-                  {/* Skor akan ditampilkan setelah Phase 4 (post-test) */}
+                  {score !== undefined && (
+                    <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                      score >= 90 ? "bg-green-100 text-green-700" :
+                      score >= 80 ? "bg-blue-50 text-blue-700" :
+                      "bg-neutral-100 text-neutral-600"
+                    }`}>
+                      {score}%
+                    </span>
+                  )}
                 </div>
               );
             })}

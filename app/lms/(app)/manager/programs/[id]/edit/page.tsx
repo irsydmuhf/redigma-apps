@@ -10,8 +10,9 @@ import {
   createPostTest, deletePostTest,
   addQuestion, deleteQuestion,
   addOption, deleteOption, setCorrectOption,
+  createMilestone, deleteMilestone,
 } from "@/lib/lms/program-actions";
-import { Copy, Trash2, Plus, BookOpen, FileText, Video, Paperclip, CheckSquare, HelpCircle, Check, ChevronLeft } from "lucide-react";
+import { Copy, Trash2, Plus, BookOpen, FileText, Video, Paperclip, CheckSquare, HelpCircle, Check, ChevronLeft, Trophy } from "lucide-react";
 import { FlashMessage } from "@/components/lms/ui/flash-message";
 
 interface Props {
@@ -49,7 +50,14 @@ export default async function EditProgramPage({ params, searchParams }: Props) {
 
   if (!program) notFound();
 
+  const { data: milestonesData } = await admin
+    .from("lms_milestones")
+    .select("id, name, description, required_modules_completed, emoji, order_index")
+    .eq("program_id", programId)
+    .order("required_modules_completed", { ascending: true });
+
   const phases = [...(program.lms_program_phases ?? [])].sort((a, b) => a.order_index - b.order_index);
+  const milestones = milestonesData ?? [];
 
   return (
     <div className="space-y-8 pb-16">
@@ -398,6 +406,66 @@ export default async function EditProgramPage({ params, searchParams }: Props) {
                 className="w-24 rounded-2xl border border-neutral-200 px-4 py-2.5 text-sm outline-none focus:border-neutral-400" />
               <button type="submit" className="rounded-2xl bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-neutral-700 whitespace-nowrap">
                 <Plus className="inline h-4 w-4 mr-1" />Tambah Phase
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      {/* Milestones */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <Trophy className="h-5 w-5 text-yellow-500" />
+          <h2 className="text-lg font-semibold text-neutral-900">Milestones</h2>
+        </div>
+        <p className="text-sm text-neutral-500 -mt-2">
+          Milestone otomatis diraih ADV saat jumlah modul yang diselesaikan mencapai threshold yang ditentukan.
+        </p>
+
+        {milestones.length === 0 ? (
+          <div className="rounded-3xl border border-dashed border-neutral-200 bg-neutral-50 p-6 text-center text-sm text-neutral-500">
+            Belum ada milestone. Tambahkan di bawah.
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {milestones.map((m) => (
+              <div key={m.id} className="flex items-center gap-3 rounded-3xl border border-neutral-100 bg-white px-5 py-3.5">
+                <span className="text-lg">{m.emoji}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-neutral-900">{m.name}</p>
+                  <p className="text-xs text-neutral-400">
+                    Setelah {m.required_modules_completed} modul selesai
+                    {m.description && ` · ${m.description}`}
+                  </p>
+                </div>
+                <form action={deleteMilestone.bind(null, m.id, programId)}>
+                  <button type="submit" className="rounded-xl p-1.5 text-neutral-400 hover:bg-red-50 hover:text-red-500">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </form>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="rounded-3xl border border-dashed border-neutral-200 p-6">
+          <form action={createMilestone.bind(null, programId)} className="space-y-3">
+            <p className="text-sm font-semibold text-neutral-700">Tambah Milestone Baru</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <input name="name" placeholder="Nama milestone (cth: Fondasi Siap)" required
+                className="rounded-2xl border border-neutral-200 px-4 py-2.5 text-sm outline-none focus:border-neutral-400" />
+              <div className="flex gap-2">
+                <input name="emoji" placeholder="🏆" defaultValue="🏆"
+                  className="w-16 rounded-2xl border border-neutral-200 px-3 py-2.5 text-center text-sm outline-none focus:border-neutral-400" />
+                <input name="required_modules_completed" type="number" min="1" placeholder="Setelah N modul" required
+                  className="flex-1 rounded-2xl border border-neutral-200 px-4 py-2.5 text-sm outline-none focus:border-neutral-400" />
+              </div>
+            </div>
+            <input name="description" placeholder="Deskripsi singkat (opsional)"
+              className="w-full rounded-2xl border border-neutral-200 px-4 py-2.5 text-sm outline-none focus:border-neutral-400" />
+            <div className="flex justify-end">
+              <button type="submit" className="rounded-2xl bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-neutral-700">
+                <Plus className="inline h-4 w-4 mr-1" />Tambah Milestone
               </button>
             </div>
           </form>

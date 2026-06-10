@@ -339,3 +339,33 @@ export async function setCorrectOption(optionId: string, questionId: string, pro
   await admin.from("lms_post_test_options").update({ is_correct: true }).eq("id", optionId);
   redirect(editUrl(programId, 'Jawaban benar berhasil diatur'));
 }
+
+// ── MILESTONES ────────────────────────────────────────────────
+
+export async function createMilestone(programId: string, formData: FormData) {
+  await requireManagerOrAdmin();
+  const admin = createAdminClient();
+  const { data: last } = await admin
+    .from("lms_milestones")
+    .select("order_index")
+    .eq("program_id", programId)
+    .order("order_index", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  await admin.from("lms_milestones").insert({
+    program_id: programId,
+    name: String(formData.get("name")).trim(),
+    description: String(formData.get("description") ?? "").trim() || null,
+    required_modules_completed: Number(formData.get("required_modules_completed")) || 1,
+    emoji: String(formData.get("emoji") ?? "🏆").trim() || "🏆",
+    order_index: (last?.order_index ?? -1) + 1,
+  });
+  redirect(editUrl(programId, 'Milestone berhasil ditambahkan'));
+}
+
+export async function deleteMilestone(milestoneId: string, programId: string) {
+  await requireManagerOrAdmin();
+  const admin = createAdminClient();
+  await admin.from("lms_milestones").delete().eq("id", milestoneId);
+  redirect(editUrl(programId, 'Milestone berhasil dihapus'));
+}

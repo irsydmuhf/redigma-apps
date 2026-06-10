@@ -7,6 +7,7 @@ import {
   Users,
   GraduationCap,
   Settings,
+  BarChart2,
 } from "lucide-react";
 import type { LmsRole } from "@/lib/lms/current-user";
 
@@ -20,12 +21,14 @@ const MANAGER_NAV = [
   { href: "/lms/manager/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/lms/manager/approvals", label: "Persetujuan", icon: ClipboardCheck },
   { href: "/lms/manager/programs", label: "Program", icon: BookOpen },
+  { href: "/lms/manager/progress", label: "Progress ADV", icon: BarChart2 },
 ];
 
 const ADMIN_NAV = [
   { href: "/lms/manager/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/lms/manager/approvals", label: "Persetujuan", icon: ClipboardCheck },
   { href: "/lms/manager/programs", label: "Program", icon: BookOpen },
+  { href: "/lms/manager/progress", label: "Progress ADV", icon: BarChart2 },
   { href: "/lms/admin/users", label: "Kelola User", icon: Users },
 ];
 
