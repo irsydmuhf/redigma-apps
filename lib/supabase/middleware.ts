@@ -25,16 +25,37 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  // Gunakan getSession() bukan getUser() — tidak ada network call ke Supabase,
-  // cukup baca dan validasi JWT dari cookie. Menghindari rate limit auth API
-  // yang terjadi karena Next.js Turbopack mengirim banyak request paralel.
+  // getSession() baca JWT dari cookie tanpa network call ke Supabase Auth —
+  // menghindari rate limit akibat banyak request paralel di Next.js Turbopack.
   const {
     data: { session },
   } = await supabase.auth.getSession();
 
   const user = session?.user ?? null;
-
   const { pathname } = request.nextUrl;
+
+  // ── LMS routes ──────────────────────────────────────────────────────────
+  if (pathname.startsWith("/lms")) {
+    const isLmsAuthRoute =
+      pathname.startsWith("/lms/login") ||
+      pathname.startsWith("/lms/register");
+
+    if (!user && !isLmsAuthRoute) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/lms/login";
+      return NextResponse.redirect(url);
+    }
+
+    if (user && isLmsAuthRoute) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/lms/dashboard";
+      return NextResponse.redirect(url);
+    }
+
+    return response;
+  }
+
+  // ── Main app routes ──────────────────────────────────────────────────────
   const isAuthRoute =
     pathname.startsWith("/login") ||
     pathname.startsWith("/cek-email") ||
