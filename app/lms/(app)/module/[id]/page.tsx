@@ -344,7 +344,6 @@ export default async function ModulePage({ params, searchParams }: Props) {
                   <form
                     action={submitTask.bind(null, task.id, enrollmentId, moduleId)}
                     className="space-y-4 border-t border-neutral-100 pt-4"
-                    encType="multipart/form-data"
                   >
                     {sub?.status === "rejected" && (
                       <p className="flex items-center gap-1.5 text-xs font-medium text-orange-600">
