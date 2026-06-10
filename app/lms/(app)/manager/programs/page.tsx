@@ -1,5 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { BookOpen, Link2, PlusCircle } from "lucide-react";
+import { BookOpen, Link2, PlusCircle, Pencil } from "lucide-react";
 import Link from "next/link";
 
 export default async function LmsProgramsPage() {
@@ -23,6 +23,12 @@ export default async function LmsProgramsPage() {
             Kelola program dan undang ADV lewat invite link.
           </p>
         </div>
+        <Link
+          href="/lms/manager/programs/new"
+          className="flex items-center gap-2 rounded-2xl bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-neutral-700"
+        >
+          <PlusCircle className="h-4 w-4" /> Buat Program
+        </Link>
       </div>
 
       {programs.length === 0 ? (
@@ -63,13 +69,22 @@ export default async function LmsProgramsPage() {
                 </div>
               </div>
 
-              <Link
-                href={`/lms/manager/programs/${p.id}/invite`}
-                className="flex items-center gap-2 rounded-2xl border border-neutral-100 px-4 py-2.5 text-sm font-medium text-neutral-700 transition hover:border-neutral-200 hover:bg-neutral-50"
-              >
-                <Link2 className="h-4 w-4 text-neutral-500" />
-                Kelola Invite Link
-              </Link>
+              <div className="flex gap-2">
+                <Link
+                  href={`/lms/manager/programs/${p.id}/edit`}
+                  className="flex flex-1 items-center gap-2 rounded-2xl border border-neutral-100 px-4 py-2.5 text-sm font-medium text-neutral-700 transition hover:border-neutral-200 hover:bg-neutral-50"
+                >
+                  <Pencil className="h-4 w-4 text-neutral-500" />
+                  Edit Kurikulum
+                </Link>
+                <Link
+                  href={`/lms/manager/programs/${p.id}/invite`}
+                  className="flex flex-1 items-center gap-2 rounded-2xl border border-neutral-100 px-4 py-2.5 text-sm font-medium text-neutral-700 transition hover:border-neutral-200 hover:bg-neutral-50"
+                >
+                  <Link2 className="h-4 w-4 text-neutral-500" />
+                  Invite Link
+                </Link>
+              </div>
             </div>
           ))}
         </div>

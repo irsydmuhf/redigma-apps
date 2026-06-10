@@ -22,6 +22,10 @@ export async function approveEnrollment(enrollmentId: string) {
     .eq("status", "pending");
 
   if (error) throw new Error(error.message);
+
+  // Init module progress untuk ADV yang baru diapprove
+  await admin.rpc("lms_init_module_progress", { p_enrollment_id: enrollmentId });
+
   revalidatePath("/lms/manager/approvals");
   revalidatePath("/lms/manager/dashboard");
 }
