@@ -58,12 +58,18 @@ export async function lmsRegister(formData: FormData) {
     role: "adv",
   });
 
-  // Buat enrollment (pending — menunggu approval Manager)
-  await admin.from("lms_program_enrollments").insert({
-    user_id: userId,
-    program_id: link.program_id,
-    status: "pending",
-  });
+  // Buat atau reset enrollment (jika sebelumnya ditolak, bisa daftar ulang)
+  await admin.from("lms_program_enrollments").upsert(
+    {
+      user_id: userId,
+      program_id: link.program_id,
+      status: "pending",
+      enrolled_at: new Date().toISOString(),
+      approved_at: null,
+      approved_by: null,
+    },
+    { onConflict: "user_id,program_id" }
+  );
 
   redirect("/lms/login?registered=true");
 }
