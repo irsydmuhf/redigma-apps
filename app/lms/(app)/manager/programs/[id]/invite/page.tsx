@@ -20,7 +20,7 @@ export default async function InviteLinkPage({ params }: Props) {
       .single(),
     admin
       .from("lms_invite_links")
-      .select("id, token, is_active, created_at, lms_user_profiles(full_name)")
+      .select("id, token, is_active, created_at, created_by")
       .eq("program_id", programId)
       .order("created_at", { ascending: false }),
   ]);
@@ -78,9 +78,6 @@ export default async function InviteLinkPage({ params }: Props) {
         <div className="space-y-3">
           <h2 className="text-sm font-semibold text-neutral-700">Link Aktif</h2>
           {activeLinks.map((link) => {
-            const creator = Array.isArray(link.lms_user_profiles)
-              ? link.lms_user_profiles[0]
-              : link.lms_user_profiles;
             const url = `${appUrl}/lms/register?token=${link.token}`;
             const createdDate = new Date(link.created_at).toLocaleDateString("id-ID", {
               day: "numeric",
@@ -98,10 +95,7 @@ export default async function InviteLinkPage({ params }: Props) {
                     <p className="break-all font-mono text-xs text-neutral-700 select-all">
                       {url}
                     </p>
-                    <p className="text-xs text-neutral-500">
-                      Dibuat {createdDate}
-                      {creator?.full_name ? ` oleh ${creator.full_name}` : ""}
-                    </p>
+                    <p className="text-xs text-neutral-500">Dibuat {createdDate}</p>
                   </div>
                   <form action={deactivateInviteLink.bind(null, link.id, programId)}>
                     <button
