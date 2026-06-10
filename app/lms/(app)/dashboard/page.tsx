@@ -1,7 +1,8 @@
 import { getCurrentLmsUser } from "@/lib/lms/current-user";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { BookOpen, Clock } from "lucide-react";
+import { BookOpen, Clock, PlusCircle } from "lucide-react";
+import Link from "next/link";
 
 export default async function LmsDashboardPage() {
   const user = await getCurrentLmsUser();
@@ -30,13 +31,22 @@ export default async function LmsDashboardPage() {
 
   return (
     <div className="space-y-8">
-      <div className="space-y-1">
-        <h1 className="text-3xl font-bold tracking-tight text-neutral-900">
-          Selamat datang, {user.fullName}
-        </h1>
-        <p className="text-sm text-neutral-600">
-          ADV Onboarding — pantau progress belajar Anda
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div className="space-y-1">
+          <h1 className="text-3xl font-bold tracking-tight text-neutral-900">
+            Selamat datang, {user.fullName}
+          </h1>
+          <p className="text-sm text-neutral-600">
+            ADV Onboarding — pantau progress belajar Anda
+          </p>
+        </div>
+        <Link
+          href="/lms/join"
+          className="shrink-0 flex items-center gap-2 rounded-2xl bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-neutral-700"
+        >
+          <PlusCircle className="h-4 w-4" />
+          Ikuti Program
+        </Link>
       </div>
 
       {pendingEnrollments.length > 0 && (
