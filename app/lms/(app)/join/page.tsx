@@ -1,5 +1,6 @@
 import { joinProgram } from "./actions";
-import { Key } from "lucide-react";
+import { Key, ChevronLeft } from "lucide-react";
+import Link from "next/link";
 
 const ERROR_MSG: Record<string, string> = {
   "token-kosong": "Token tidak boleh kosong.",
@@ -19,6 +20,9 @@ export default async function JoinProgramPage({
 
   return (
     <div className="max-w-lg space-y-6">
+      <Link href="/lms/programs" className="flex items-center gap-1 text-sm text-neutral-500 hover:text-neutral-700">
+        <ChevronLeft className="h-4 w-4" /> Program Saya
+      </Link>
       <div className="space-y-1">
         <h1 className="text-3xl font-bold tracking-tight text-neutral-900">
           Ikuti Program

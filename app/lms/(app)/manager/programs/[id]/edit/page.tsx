@@ -11,7 +11,7 @@ import {
   addQuestion, deleteQuestion,
   addOption, deleteOption, setCorrectOption,
 } from "@/lib/lms/program-actions";
-import { Copy, Trash2, Plus, BookOpen, FileText, Video, Paperclip, CheckSquare, HelpCircle, Check } from "lucide-react";
+import { Copy, Trash2, Plus, BookOpen, FileText, Video, Paperclip, CheckSquare, HelpCircle, Check, ChevronLeft } from "lucide-react";
 import { FlashMessage } from "@/components/lms/ui/flash-message";
 
 interface Props {
@@ -57,12 +57,10 @@ export default async function EditProgramPage({ params, searchParams }: Props) {
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-1">
-          <div className="flex items-center gap-2 text-sm text-neutral-500">
-            <Link href="/lms/manager/programs" className="hover:text-neutral-700">Program</Link>
-            <span>/</span>
-            <span className="text-neutral-900 font-medium">{program.name}</span>
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-neutral-900">Edit Program</h1>
+          <Link href="/lms/manager/programs" className="flex items-center gap-1 text-sm text-neutral-500 hover:text-neutral-700">
+            <ChevronLeft className="h-4 w-4" /> Program
+          </Link>
+          <h1 className="text-2xl font-bold tracking-tight text-neutral-900">{program.name}</h1>
         </div>
         <form action={duplicateProgram.bind(null, programId)}>
           <button type="submit" className="flex items-center gap-2 rounded-2xl border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50">

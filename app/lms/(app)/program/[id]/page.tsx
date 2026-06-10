@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { Lock, CheckCircle2, PlayCircle, BookOpen, ChevronRight } from "lucide-react";
+import { Lock, CheckCircle2, PlayCircle, BookOpen, ChevronRight, ChevronLeft } from "lucide-react";
 
 interface Props { params: Promise<{ id: string }> }
 
@@ -75,6 +75,15 @@ export default async function ProgramPage({ params }: Props) {
 
   return (
     <div className="space-y-8">
+      {/* Back */}
+      <Link
+        href={user.role === "adv" ? "/lms/programs" : "/lms/manager/programs"}
+        className="flex items-center gap-1 text-sm text-neutral-500 hover:text-neutral-700"
+      >
+        <ChevronLeft className="h-4 w-4" />
+        {user.role === "adv" ? "Program Saya" : "Program"}
+      </Link>
+
       {/* Header */}
       <div className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight text-neutral-900">{program.name}</h1>
