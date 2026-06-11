@@ -54,7 +54,8 @@ export default async function ProgramPage({ params }: Props) {
       .eq("program_id", programId)
       .single();
 
-    if (!enrollment || enrollment.status !== "active") {
+    // Aktif → belajar; completed → boleh buka untuk review (read-only).
+    if (!enrollment || (enrollment.status !== "active" && enrollment.status !== "completed")) {
       redirect("/lms/dashboard");
     }
 

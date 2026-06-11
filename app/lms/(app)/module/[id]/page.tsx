@@ -77,7 +77,10 @@ export default async function ModulePage({ params, searchParams }: Props) {
       .eq("program_id", programId)
       .single();
 
-    if (!enrollment || enrollment.status !== "active") redirect("/lms/dashboard");
+    // Aktif → belajar; completed → boleh buka untuk review (read-only).
+    if (!enrollment || (enrollment.status !== "active" && enrollment.status !== "completed")) {
+      redirect("/lms/dashboard");
+    }
     enrollmentId = enrollment.id;
 
     const { data: progress } = await supabase
@@ -213,9 +216,11 @@ export default async function ModulePage({ params, searchParams }: Props) {
       {/* ── TAB: MATERI ── */}
       {(tab === "materi" || user.role !== "adv") && (
         <div className="space-y-4">
-          {user.role !== "adv" && contents.length === 0 && tasks.length === 0 && (
+          {contents.length === 0 && (
             <div className="rounded-3xl border border-neutral-100 bg-white p-10 text-center text-sm text-neutral-500">
-              Belum ada konten atau task di modul ini.
+              {tasks.length > 0
+                ? "Belum ada materi bacaan. Lanjut ke tab Task untuk mengerjakan tugas."
+                : "Belum ada materi untuk modul ini."}
             </div>
           )}
           {contents.map((c) => (
