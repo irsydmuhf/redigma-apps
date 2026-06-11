@@ -4,7 +4,7 @@ import Link from "next/link";
 import {
   addPhase, deletePhase,
   addModule, deleteModule,
-  addContent, deleteContent,
+  deleteContent,
   addTask, deleteTask,
   updateProgram, duplicateProgram,
   createPostTest, deletePostTest,
@@ -15,6 +15,7 @@ import {
 import { Copy, Trash2, Plus, BookOpen, FileText, Video, Paperclip, CheckSquare, HelpCircle, Check, ChevronLeft, Trophy } from "lucide-react";
 import { FlashMessage } from "@/components/lms/ui/flash-message";
 import { ConfirmButton } from "@/components/ui/confirm-button";
+import { AddContentForm } from "@/components/lms/programs/add-content-form";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -240,24 +241,7 @@ export default async function EditProgramPage({ params, searchParams }: Props) {
                           <summary className="flex cursor-pointer items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-800 list-none">
                             <Plus className="h-3.5 w-3.5" /> Tambah Konten
                           </summary>
-                          <form action={addContent.bind(null, mod.id, programId)} className="mt-3 rounded-xl border border-blue-100 bg-blue-50 p-3 space-y-3">
-                            <select name="type" className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-xs bg-white outline-none" required>
-                              <option value="text">Teks</option>
-                              <option value="video">Video (URL Embed)</option>
-                              <option value="file">File (URL)</option>
-                            </select>
-                            <textarea name="content_text" placeholder="Isi teks konten (untuk tipe Teks)" rows={3}
-                              className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-xs outline-none resize-none" />
-                            <input name="video_url" placeholder="URL video (YouTube/Vimeo, untuk tipe Video)"
-                              className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-xs outline-none" />
-                            <input name="file_url" placeholder="URL file (untuk tipe File)"
-                              className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-xs outline-none" />
-                            <input name="file_name" placeholder="Nama file (cth: Materi_SOP.pdf)"
-                              className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-xs outline-none" />
-                            <button type="submit" className="rounded-xl bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700">
-                              Simpan Konten
-                            </button>
-                          </form>
+                          <AddContentForm moduleId={mod.id} programId={programId} />
                         </details>
 
                         {/* Add Task form */}
