@@ -24,12 +24,21 @@ async function assertOwnedActiveEnrollment(
 ) {
   const { data } = await admin
     .from("lms_program_enrollments")
-    .select("id, user_id, status")
+    .select("id, user_id, status, program_id")
     .eq("id", enrollmentId)
     .maybeSingle();
   if (!data || data.user_id !== userId) throw new Error("Tidak punya akses.");
   if (data.status !== "active") throw new Error("Program ini tidak aktif.");
   return data;
+}
+
+/** Ambil program_id dari relasi nested lms_program_modules(lms_program_phases(program_id)). */
+function relProgramId(moduleRel: unknown): string | undefined {
+  const mod = Array.isArray(moduleRel) ? moduleRel[0] : moduleRel;
+  if (!mod) return undefined;
+  const phaseRel = (mod as { lms_program_phases?: unknown }).lms_program_phases;
+  const ph = Array.isArray(phaseRel) ? phaseRel[0] : phaseRel;
+  return (ph as { program_id?: string } | undefined)?.program_id;
 }
 
 export async function submitTask(
@@ -42,7 +51,18 @@ export async function submitTask(
   if (!me || me.role !== "adv") throw new Error("Tidak punya akses.");
 
   const admin = createAdminClient();
-  await assertOwnedActiveEnrollment(admin, enrollmentId, me.id);
+  const enr = await assertOwnedActiveEnrollment(admin, enrollmentId, me.id);
+
+  // Task & modul harus milik program enrollment ini.
+  const { data: task } = await admin
+    .from("lms_module_tasks")
+    .select("module_id, lms_program_modules(lms_program_phases(program_id))")
+    .eq("id", taskId)
+    .maybeSingle();
+  if (!task || task.module_id !== moduleId || relProgramId(task.lms_program_modules) !== enr.program_id) {
+    throw new Error("Task tidak valid untuk program ini.");
+  }
+
   const linkUrl = String(formData.get("link_url") ?? "").trim() || null;
   const notes = String(formData.get("notes") ?? "").trim() || null;
 
@@ -192,7 +212,18 @@ export async function startPostTest(postTestId: string, enrollmentId: string, mo
   if (!me || me.role !== "adv") throw new Error("Tidak punya akses.");
 
   const admin = createAdminClient();
-  await assertOwnedActiveEnrollment(admin, enrollmentId, me.id);
+  const enr = await assertOwnedActiveEnrollment(admin, enrollmentId, me.id);
+
+  // Post-test & modul harus milik program enrollment ini.
+  const { data: pt } = await admin
+    .from("lms_post_tests")
+    .select("module_id, lms_program_modules(lms_program_phases(program_id))")
+    .eq("id", postTestId)
+    .maybeSingle();
+  if (!pt || pt.module_id !== moduleId || relProgramId(pt.lms_program_modules) !== enr.program_id) {
+    throw new Error("Post-test tidak valid untuk program ini.");
+  }
+
   const { data: attemptId, error } = await admin.rpc("lms_start_post_test", {
     p_enrollment_id: enrollmentId,
     p_post_test_id: postTestId,
@@ -214,14 +245,18 @@ export async function submitPostTest(
   const admin = createAdminClient();
   await assertOwnedActiveEnrollment(admin, enrollmentId, me.id);
 
-  // Pastikan attempt benar milik enrollment ini & belum disubmit.
+  // Pastikan attempt benar milik enrollment ini, modulnya cocok, & belum disubmit.
   const { data: attempt } = await admin
     .from("lms_post_test_attempts")
-    .select("id, enrollment_id, submitted_at")
+    .select("id, enrollment_id, submitted_at, lms_post_tests(module_id)")
     .eq("id", attemptId)
     .maybeSingle();
   if (!attempt || attempt.enrollment_id !== enrollmentId) throw new Error("Attempt tidak valid.");
   if (attempt.submitted_at) throw new Error("Post-test ini sudah disubmit.");
+  const ptRel = Array.isArray(attempt.lms_post_tests) ? attempt.lms_post_tests[0] : attempt.lms_post_tests;
+  if ((ptRel as { module_id?: string } | undefined)?.module_id !== moduleId) {
+    throw new Error("Modul tidak cocok dengan attempt.");
+  }
 
   // Hanya jawaban milik attempt ini + opsi yang valid utk pertanyaannya yang boleh disimpan.
   const { data: answerRows } = await admin
