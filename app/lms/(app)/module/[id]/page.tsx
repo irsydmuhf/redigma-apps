@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { FlashMessage } from "@/components/lms/ui/flash-message";
 import { resolveVideo } from "@/lib/lms/video";
+import { ModuleNotes } from "@/components/lms/module/module-notes";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -68,6 +69,7 @@ export default async function ModulePage({ params, searchParams }: Props) {
   let enrollmentId: string | null = null;
   let moduleStatus = "in_progress";
   let submissions: Record<string, any> = {};
+  let noteContent = "";
 
   if (user.role === "adv") {
     const { data: enrollment } = await supabase
@@ -102,6 +104,15 @@ export default async function ModulePage({ params, searchParams }: Props) {
     for (const s of subs ?? []) {
       if (!submissions[s.task_id]) submissions[s.task_id] = s;
     }
+
+    // Catatan pribadi ADV untuk modul ini (tabel mungkin belum ada → diabaikan)
+    const { data: note } = await admin
+      .from("lms_module_notes")
+      .select("content")
+      .eq("enrollment_id", enrollment.id)
+      .eq("module_id", moduleId)
+      .maybeSingle();
+    noteContent = (note?.content as string | undefined) ?? "";
   }
 
   const contents = [...(mod.lms_module_content ?? [])].sort((a, b) => a.order_index - b.order_index);
@@ -258,10 +269,8 @@ export default async function ModulePage({ params, searchParams }: Props) {
               )}
             </div>
           ))}
-          {contents.length === 0 && user.role === "adv" && (
-            <div className="rounded-3xl border border-neutral-100 bg-white p-8 text-center text-sm text-neutral-500">
-              Belum ada materi di modul ini.
-            </div>
+          {user.role === "adv" && enrollmentId && (
+            <ModuleNotes moduleId={moduleId} enrollmentId={enrollmentId} initial={noteContent} />
           )}
         </div>
       )}
