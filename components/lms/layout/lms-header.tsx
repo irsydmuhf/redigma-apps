@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import type { LmsUser } from "@/lib/lms/current-user";
+import { LmsMobileNav } from "@/components/lms/layout/lms-mobile-nav";
 
 const ROLE_LABEL: Record<string, string> = {
   adv: "Advertiser",
@@ -13,6 +14,7 @@ export function LmsHeader({ user }: { user: LmsUser }) {
   return (
     <header className="flex h-16 items-center justify-between gap-3 border-b border-neutral-100 bg-white px-4 sm:px-6 lg:px-8">
       <div className="flex min-w-0 items-center gap-2">
+        <LmsMobileNav role={user.role} />
         <span className="rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-semibold text-neutral-600">
           {ROLE_LABEL[user.role]}
         </span>

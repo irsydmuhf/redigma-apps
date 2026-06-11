@@ -1,45 +1,19 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
-import {
-  LayoutDashboard,
-  BookOpen,
-  ClipboardCheck,
-  Users,
-  GraduationCap,
-  Settings,
-  BarChart2,
-} from "lucide-react";
+import { usePathname } from "next/navigation";
+import { Settings } from "lucide-react";
 import type { LmsRole } from "@/lib/lms/current-user";
+import { getNavItems } from "./nav-items";
 
-const ADV_NAV = [
-  { href: "/lms/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/lms/programs", label: "Program Saya", icon: BookOpen },
-  { href: "/lms/profile", label: "Profil Saya", icon: GraduationCap },
-];
-
-const MANAGER_NAV = [
-  { href: "/lms/manager/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/lms/manager/approvals", label: "Persetujuan", icon: ClipboardCheck },
-  { href: "/lms/manager/programs", label: "Program", icon: BookOpen },
-  { href: "/lms/manager/progress", label: "Progress ADV", icon: BarChart2 },
-];
-
-const ADMIN_NAV = [
-  { href: "/lms/manager/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/lms/manager/approvals", label: "Persetujuan", icon: ClipboardCheck },
-  { href: "/lms/manager/programs", label: "Program", icon: BookOpen },
-  { href: "/lms/manager/progress", label: "Progress ADV", icon: BarChart2 },
-  { href: "/lms/admin/users", label: "Kelola User", icon: Users },
-];
-
-function getNavItems(role: LmsRole) {
-  if (role === "admin") return ADMIN_NAV;
-  if (role === "manager") return MANAGER_NAV;
-  return ADV_NAV;
+function isActive(pathname: string, href: string) {
+  return pathname === href || pathname.startsWith(href + "/");
 }
 
 export function LmsSidebar({ role }: { role: LmsRole }) {
   const items = getNavItems(role);
+  const pathname = usePathname();
 
   return (
     <aside className="hidden w-64 shrink-0 border-r border-neutral-100 bg-white lg:flex lg:flex-col">
@@ -60,13 +34,18 @@ export function LmsSidebar({ role }: { role: LmsRole }) {
       <nav className="flex-1 space-y-1 px-4 py-4">
         {items.map((item) => {
           const Icon = item.icon;
+          const active = isActive(pathname, item.href);
           return (
             <Link
               key={item.href}
               href={item.href}
-              className="flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 hover:text-neutral-900"
+              className={`flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium transition ${
+                active
+                  ? "bg-neutral-900 text-white"
+                  : "text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900"
+              }`}
             >
-              <Icon className="h-4 w-4 text-neutral-500" />
+              <Icon className={`h-4 w-4 ${active ? "text-white" : "text-neutral-500"}`} />
               {item.label}
             </Link>
           );
