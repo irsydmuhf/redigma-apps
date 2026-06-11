@@ -14,24 +14,53 @@ export default async function LmsDashboardPage() {
 
   const supabase = await createClient();
 
-  // Enrollment aktif terbaru
-  const { data: enrollment } = await supabase
+  // Semua enrollment milik user
+  const { data: myEnrollments } = await supabase
     .from("lms_program_enrollments")
-    .select("id, enrolled_at, approved_at, lms_programs(id, name, description)")
+    .select("id, status, enrolled_at, approved_at, program_id, lms_programs(id, name, description)")
     .eq("user_id", user.id)
-    .eq("status", "active")
-    .order("enrolled_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .order("enrolled_at", { ascending: false });
 
-  // Pending enrollment untuk banner
-  const { data: pendingEnrollments } = await supabase
-    .from("lms_program_enrollments")
-    .select("id, lms_programs(name)")
-    .eq("user_id", user.id)
-    .eq("status", "pending");
+  const allEnrollments = myEnrollments ?? [];
+  const hasPending = allEnrollments.some((e) => e.status === "pending");
 
-  const hasPending = (pendingEnrollments ?? []).length > 0;
+  // Program utama yang ditampilkan: prioritaskan yang aktif, lalu yang sudah selesai
+  const enrollment =
+    allEnrollments.find((e) => e.status === "active") ??
+    allEnrollments.find((e) => e.status === "completed") ??
+    null;
+
+  // Sertifikat kelulusan dari SEMUA program (lintas enrollment) — tidak terikat
+  // pada program yang sedang aktif, supaya tetap tampil setelah ADV lulus.
+  const gradEnrollIds = allEnrollments
+    .filter((e) => e.status === "active" || e.status === "completed")
+    .map((e) => e.id);
+  const { data: certRows } = gradEnrollIds.length
+    ? await supabase
+        .from("lms_adv_milestones")
+        .select("milestone_id, certificate_url, enrollment_id")
+        .in("enrollment_id", gradEnrollIds)
+        .eq("status", "approved")
+        .not("certificate_url", "is", null)
+    : { data: [] };
+
+  const certMsIds = [...new Set((certRows ?? []).map((c) => c.milestone_id))];
+  const { data: certMilestones } = certMsIds.length
+    ? await supabase.from("lms_milestones").select("id, name, emoji").in("id", certMsIds)
+    : { data: [] };
+  const certMsMap = Object.fromEntries((certMilestones ?? []).map((m) => [m.id, m]));
+  const enrollProgName = Object.fromEntries(
+    allEnrollments.map((e) => {
+      const p = Array.isArray(e.lms_programs) ? e.lms_programs[0] : e.lms_programs;
+      return [e.id, p?.name ?? ""];
+    })
+  );
+  const certificates = (certRows ?? []).map((c) => ({
+    url: c.certificate_url as string,
+    milestoneName: certMsMap[c.milestone_id]?.name ?? "Kelulusan",
+    emoji: certMsMap[c.milestone_id]?.emoji ?? "🏆",
+    programName: enrollProgName[c.enrollment_id] ?? "",
+  }));
 
   if (!enrollment) {
     return (
@@ -143,12 +172,6 @@ export default async function LmsDashboardPage() {
   const achievedIds = new Set(
     (achievedRaw ?? []).filter((a) => a.status !== "rejected").map((a) => a.milestone_id)
   );
-  const certificate = (achievedRaw ?? []).find(
-    (a) => a.status === "approved" && a.certificate_url
-  );
-  const certMilestone = certificate
-    ? (milestones ?? []).find((m) => m.id === certificate.milestone_id)
-    : null;
   const achievedList = (milestones ?? []).filter((m) => achievedIds.has(m.id))
     .sort((a, b) => b.required_modules_completed - a.required_modules_completed);
   const nextMilestone = (milestones ?? []).find((m) => !achievedIds.has(m.id));
@@ -169,22 +192,23 @@ export default async function LmsDashboardPage() {
         </p>
       </div>
 
-      {/* Sertifikat kelulusan */}
-      {certificate?.certificate_url && (
-        <div className="flex items-center gap-4 rounded-3xl border border-yellow-200 bg-gradient-to-br from-yellow-50 to-white p-6">
+      {/* Sertifikat kelulusan (lintas program) */}
+      {certificates.map((cert, i) => (
+        <div key={i} className="flex items-center gap-4 rounded-3xl border border-yellow-200 bg-gradient-to-br from-yellow-50 to-white p-6">
           <Award className="h-10 w-10 shrink-0 text-yellow-500" />
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-neutral-900">Selamat, kamu lulus! 🎉</p>
             <p className="text-xs text-neutral-500">
-              {certMilestone?.name ?? "Sertifikat kelulusan"} telah diterbitkan oleh Manager.
+              {cert.emoji} {cert.milestoneName}
+              {cert.programName ? ` · ${cert.programName}` : ""} — sertifikat telah diterbitkan.
             </p>
           </div>
-          <a href={certificate.certificate_url} target="_blank" rel="noreferrer"
+          <a href={cert.url} target="_blank" rel="noreferrer"
             className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-neutral-900 px-4 py-2 text-sm font-semibold text-white hover:bg-neutral-700">
             <Download className="h-4 w-4" /> Unduh Sertifikat
           </a>
         </div>
-      )}
+      ))}
 
       {/* Progress + Milestone */}
       <div className="grid gap-4 sm:grid-cols-2">
