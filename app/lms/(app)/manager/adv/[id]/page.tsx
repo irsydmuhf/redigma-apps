@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { summarizeEnrollment, moduleOf, sortByCurriculum, nested } from "@/lib/lms/progress";
 import { FlashMessage } from "@/components/lms/ui/flash-message";
+import { ConfirmButton } from "@/components/ui/confirm-button";
 import { approveMilestone, rejectMilestone } from "@/app/lms/(app)/manager/approvals/actions";
 
 interface Props {
@@ -210,11 +211,15 @@ export default async function AdvDetailPage({ params, searchParams }: Props) {
                         <CheckCircle2 className="h-4 w-4" /> Setujui & Terbitkan Sertifikat
                       </button>
                     </form>
-                    <form action={rejectMilestone.bind(null, rec.id, `/lms/manager/adv/${enrollmentId}`)}>
-                      <button type="submit" className="flex items-center gap-1.5 rounded-xl bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100">
-                        <XCircle className="h-4 w-4" /> Tolak
-                      </button>
-                    </form>
+                    <ConfirmButton
+                      action={rejectMilestone.bind(null, rec.id, `/lms/manager/adv/${enrollmentId}`)}
+                      className="flex items-center gap-1.5 rounded-xl bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100"
+                      title="Tolak pengajuan kelulusan?"
+                      description="ADV tidak akan menerima sertifikat untuk milestone ini."
+                      confirmLabel="Tolak"
+                    >
+                      <XCircle className="h-4 w-4" /> Tolak
+                    </ConfirmButton>
                   </div>
                 )}
 

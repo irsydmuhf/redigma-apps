@@ -14,6 +14,7 @@ import {
 } from "@/lib/lms/program-actions";
 import { Copy, Trash2, Plus, BookOpen, FileText, Video, Paperclip, CheckSquare, HelpCircle, Check, ChevronLeft, Trophy } from "lucide-react";
 import { FlashMessage } from "@/components/lms/ui/flash-message";
+import { ConfirmButton } from "@/components/ui/confirm-button";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -136,11 +137,15 @@ export default async function EditProgramPage({ params, searchParams }: Props) {
                     </span>
                   )}
                 </div>
-                <form action={deletePhase.bind(null, phase.id, programId)}>
-                  <button type="submit" className="rounded-xl p-1.5 text-neutral-400 hover:bg-red-50 hover:text-red-600">
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </form>
+                <ConfirmButton
+                  action={deletePhase.bind(null, phase.id, programId)}
+                  triggerTitle="Hapus fase"
+                  className="rounded-xl p-1.5 text-neutral-400 hover:bg-red-50 hover:text-red-600"
+                  title={`Hapus fase "${phase.title}"?`}
+                  description="Semua modul, konten, task, dan post-test di dalam fase ini ikut terhapus."
+                >
+                  <Trash2 className="h-4 w-4" />
+                </ConfirmButton>
               </div>
 
               <div className="p-6 space-y-6">
@@ -163,11 +168,15 @@ export default async function EditProgramPage({ params, searchParams }: Props) {
                           <p className="text-sm font-semibold text-neutral-800">{mod.title}</p>
                           <p className="text-xs text-neutral-500">Estimasi: {mod.estimated_days} hari</p>
                         </div>
-                        <form action={deleteModule.bind(null, mod.id, programId)}>
-                          <button type="submit" className="rounded-xl p-1.5 text-neutral-400 hover:bg-red-50 hover:text-red-600">
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </form>
+                        <ConfirmButton
+                          action={deleteModule.bind(null, mod.id, programId)}
+                          triggerTitle="Hapus modul"
+                          className="rounded-xl p-1.5 text-neutral-400 hover:bg-red-50 hover:text-red-600"
+                          title={`Hapus modul "${mod.title}"?`}
+                          description="Semua konten, task, dan post-test pada modul ini ikut terhapus."
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </ConfirmButton>
                       </div>
 
                       <div className="p-4 space-y-4">
@@ -291,11 +300,14 @@ export default async function EditProgramPage({ params, searchParams }: Props) {
                               </form>
                             )}
                             {postTest && (
-                              <form action={deletePostTest.bind(null, (postTest as any).id, programId)}>
-                                <button type="submit" className="rounded-xl px-2.5 py-1 text-xs text-red-500 hover:bg-red-50">
-                                  Hapus Post-Test
-                                </button>
-                              </form>
+                              <ConfirmButton
+                                action={deletePostTest.bind(null, (postTest as any).id, programId)}
+                                className="rounded-xl px-2.5 py-1 text-xs text-red-500 hover:bg-red-50"
+                                title="Hapus post-test ini?"
+                                description="Semua pertanyaan dan opsi jawaban pada post-test ini ikut terhapus."
+                              >
+                                Hapus Post-Test
+                              </ConfirmButton>
                             )}
                           </div>
 
@@ -445,11 +457,15 @@ export default async function EditProgramPage({ params, searchParams }: Props) {
                     {m.description && ` · ${m.description}`}
                   </p>
                 </div>
-                <form action={deleteMilestone.bind(null, m.id, programId)}>
-                  <button type="submit" className="rounded-xl p-1.5 text-neutral-400 hover:bg-red-50 hover:text-red-500">
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </form>
+                <ConfirmButton
+                  action={deleteMilestone.bind(null, m.id, programId)}
+                  triggerTitle="Hapus milestone"
+                  className="rounded-xl p-1.5 text-neutral-400 hover:bg-red-50 hover:text-red-500"
+                  title={`Hapus milestone "${m.name}"?`}
+                  description="Pencapaian milestone ini pada ADV yang sudah meraihnya juga akan hilang."
+                >
+                  <Trash2 className="h-4 w-4" />
+                </ConfirmButton>
               </div>
             ))}
           </div>

@@ -4,6 +4,7 @@ import { approveEnrollment, rejectEnrollment, approveMilestone, rejectMilestone 
 import { approveSubmission, rejectSubmission } from "@/app/lms/(app)/module/[id]/actions";
 import { CheckCircle2, XCircle, Clock, Upload, Link2, Award } from "lucide-react";
 import { FlashMessage } from "@/components/lms/ui/flash-message";
+import { ConfirmButton } from "@/components/ui/confirm-button";
 
 export default async function LmsApprovalsPage({
   searchParams,
@@ -158,11 +159,15 @@ export default async function LmsApprovalsPage({
                         <CheckCircle2 className="h-4 w-4" /> Setujui & Terbitkan Sertifikat
                       </button>
                     </form>
-                    <form action={rejectMilestone.bind(null, f.id, "/lms/manager/approvals")}>
-                      <button type="submit" className="flex items-center gap-1.5 rounded-xl bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100">
-                        <XCircle className="h-4 w-4" /> Tolak
-                      </button>
-                    </form>
+                    <ConfirmButton
+                      action={rejectMilestone.bind(null, f.id, "/lms/manager/approvals")}
+                      className="flex items-center gap-1.5 rounded-xl bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100"
+                      title="Tolak pengajuan kelulusan?"
+                      description="ADV tidak akan menerima sertifikat untuk milestone ini."
+                      confirmLabel="Tolak"
+                    >
+                      <XCircle className="h-4 w-4" /> Tolak
+                    </ConfirmButton>
                     {enr && (
                       <Link href={`/lms/manager/adv/${f.enrollment_id}`} className="ml-auto text-xs text-neutral-500 hover:text-neutral-700 hover:underline">
                         Lihat detail ADV
