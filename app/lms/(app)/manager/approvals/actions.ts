@@ -7,6 +7,11 @@ import { notify } from "@/lib/lms/notify";
 import { sendEmailToUser, emailShell, lmsUrl } from "@/lib/lms/email";
 import { redirect } from "next/navigation";
 
+/** Cegah open-redirect: hanya izinkan path internal. */
+function safePath(p: string, fallback = "/lms/manager/approvals") {
+  return p && p.startsWith("/") && !p.startsWith("//") ? p : fallback;
+}
+
 export async function approveEnrollment(enrollmentId: string) {
   const me = await getCurrentLmsUser();
   if (!me || (me.role !== "manager" && me.role !== "admin")) {
@@ -181,7 +186,7 @@ export async function approveMilestone(advMilestoneId: string, redirectTo: strin
     link: "/lms/dashboard",
   });
 
-  redirect(`${redirectTo}?msg=${encodeURIComponent("Kelulusan disetujui & sertifikat diterbitkan")}`);
+  redirect(`${safePath(redirectTo)}?msg=${encodeURIComponent("Kelulusan disetujui & sertifikat diterbitkan")}`);
 }
 
 export async function rejectMilestone(advMilestoneId: string, redirectTo: string) {
@@ -221,5 +226,47 @@ export async function rejectMilestone(advMilestoneId: string, redirectTo: string
     }
   }
 
-  redirect(`${redirectTo}?msg=${encodeURIComponent("Pengajuan kelulusan ditolak")}`);
+  redirect(`${safePath(redirectTo)}?msg=${encodeURIComponent("Pengajuan kelulusan ditolak")}`);
+}
+
+/** Buka kembali pengajuan kelulusan yang ditolak (rejected → pending_approval)
+ *  agar ADV tidak terkunci selamanya. Manager/admin only. */
+export async function reopenMilestone(advMilestoneId: string, redirectTo: string) {
+  const me = await getCurrentLmsUser();
+  if (!me || (me.role !== "manager" && me.role !== "admin")) {
+    throw new Error("Tidak punya akses.");
+  }
+
+  const admin = createAdminClient();
+  const { data: am } = await admin
+    .from("lms_adv_milestones")
+    .select("enrollment_id")
+    .eq("id", advMilestoneId)
+    .single();
+
+  const { error } = await admin
+    .from("lms_adv_milestones")
+    .update({ status: "pending_approval" })
+    .eq("id", advMilestoneId)
+    .eq("status", "rejected");
+  if (error) throw new Error(error.message);
+
+  if (am) {
+    const { data: enr } = await admin
+      .from("lms_program_enrollments")
+      .select("user_id")
+      .eq("id", am.enrollment_id)
+      .single();
+    if (enr) {
+      await notify({
+        userId: enr.user_id,
+        type: "milestone",
+        title: "Pengajuan kelulusan dibuka kembali",
+        body: "Manager meninjau ulang pengajuan kelulusanmu.",
+        link: "/lms/dashboard",
+      });
+    }
+  }
+
+  redirect(`${safePath(redirectTo)}?msg=${encodeURIComponent("Pengajuan kelulusan dibuka kembali")}`);
 }

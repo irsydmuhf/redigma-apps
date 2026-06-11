@@ -15,6 +15,23 @@ async function advUserId(admin: ReturnType<typeof createAdminClient>, enrollment
   return data?.user_id as string | undefined;
 }
 
+/** Pastikan enrollment benar milik ADV ini DAN masih aktif. Cegah IDOR
+ *  (ADV memakai enrollmentId orang lain) dan aksi pada program yang sudah selesai. */
+async function assertOwnedActiveEnrollment(
+  admin: ReturnType<typeof createAdminClient>,
+  enrollmentId: string,
+  userId: string
+) {
+  const { data } = await admin
+    .from("lms_program_enrollments")
+    .select("id, user_id, status")
+    .eq("id", enrollmentId)
+    .maybeSingle();
+  if (!data || data.user_id !== userId) throw new Error("Tidak punya akses.");
+  if (data.status !== "active") throw new Error("Program ini tidak aktif.");
+  return data;
+}
+
 export async function submitTask(
   taskId: string,
   enrollmentId: string,
@@ -25,6 +42,7 @@ export async function submitTask(
   if (!me || me.role !== "adv") throw new Error("Tidak punya akses.");
 
   const admin = createAdminClient();
+  await assertOwnedActiveEnrollment(admin, enrollmentId, me.id);
   const linkUrl = String(formData.get("link_url") ?? "").trim() || null;
   const notes = String(formData.get("notes") ?? "").trim() || null;
 
@@ -174,6 +192,7 @@ export async function startPostTest(postTestId: string, enrollmentId: string, mo
   if (!me || me.role !== "adv") throw new Error("Tidak punya akses.");
 
   const admin = createAdminClient();
+  await assertOwnedActiveEnrollment(admin, enrollmentId, me.id);
   const { data: attemptId, error } = await admin.rpc("lms_start_post_test", {
     p_enrollment_id: enrollmentId,
     p_post_test_id: postTestId,
@@ -193,17 +212,45 @@ export async function submitPostTest(
   if (!me || me.role !== "adv") throw new Error("Tidak punya akses.");
 
   const admin = createAdminClient();
+  await assertOwnedActiveEnrollment(admin, enrollmentId, me.id);
 
-  // Save selected answers
+  // Pastikan attempt benar milik enrollment ini & belum disubmit.
+  const { data: attempt } = await admin
+    .from("lms_post_test_attempts")
+    .select("id, enrollment_id, submitted_at")
+    .eq("id", attemptId)
+    .maybeSingle();
+  if (!attempt || attempt.enrollment_id !== enrollmentId) throw new Error("Attempt tidak valid.");
+  if (attempt.submitted_at) throw new Error("Post-test ini sudah disubmit.");
+
+  // Hanya jawaban milik attempt ini + opsi yang valid utk pertanyaannya yang boleh disimpan.
+  const { data: answerRows } = await admin
+    .from("lms_post_test_attempt_answers")
+    .select("id, question_id")
+    .eq("attempt_id", attemptId);
+  const questionByAnswer = new Map((answerRows ?? []).map((a) => [a.id, a.question_id]));
+  const questionIds = [...new Set((answerRows ?? []).map((a) => a.question_id))];
+  const { data: opts } = questionIds.length
+    ? await admin.from("lms_post_test_options").select("id, question_id").in("question_id", questionIds)
+    : { data: [] as { id: string; question_id: string }[] };
+  const validOptByQuestion = new Map<string, Set<string>>();
+  for (const o of opts ?? []) {
+    if (!validOptByQuestion.has(o.question_id)) validOptByQuestion.set(o.question_id, new Set());
+    validOptByQuestion.get(o.question_id)!.add(o.id);
+  }
+
   for (const [key, value] of formData.entries()) {
-    if (key.startsWith("answer_")) {
-      const answerId = key.replace("answer_", "");
-      const optionId = String(value);
-      await admin
-        .from("lms_post_test_attempt_answers")
-        .update({ selected_option_id: optionId })
-        .eq("id", answerId);
-    }
+    if (!key.startsWith("answer_")) continue;
+    const answerId = key.replace("answer_", "");
+    const optionId = String(value);
+    const qId = questionByAnswer.get(answerId);
+    if (!qId) continue; // jawaban bukan milik attempt ini → tolak
+    if (!validOptByQuestion.get(qId)?.has(optionId)) continue; // opsi tidak valid → tolak
+    await admin
+      .from("lms_post_test_attempt_answers")
+      .update({ selected_option_id: optionId })
+      .eq("id", answerId)
+      .eq("attempt_id", attemptId);
   }
 
   const { data: score, error } = await admin.rpc("lms_submit_post_test", {

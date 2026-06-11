@@ -3,12 +3,12 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import {
   ChevronLeft, Clock, AlertTriangle, CheckCircle2, XCircle, Lock, PlayCircle,
-  FileText, ExternalLink, Image as ImageIcon, Award, Download,
+  FileText, ExternalLink, Image as ImageIcon, Award, Download, RotateCcw,
 } from "lucide-react";
 import { summarizeEnrollment, moduleOf, sortByCurriculum, nested } from "@/lib/lms/progress";
 import { FlashMessage } from "@/components/lms/ui/flash-message";
 import { ConfirmButton } from "@/components/ui/confirm-button";
-import { approveMilestone, rejectMilestone } from "@/app/lms/(app)/manager/approvals/actions";
+import { approveMilestone, rejectMilestone, reopenMilestone } from "@/app/lms/(app)/manager/approvals/actions";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -229,6 +229,16 @@ export default async function AdvDetailPage({ params, searchParams }: Props) {
                       className="inline-flex items-center gap-1.5 rounded-xl bg-neutral-900 px-4 py-2 text-sm font-semibold text-white hover:bg-neutral-700">
                       <Download className="h-4 w-4" /> Unduh Sertifikat (PDF)
                     </a>
+                  </div>
+                )}
+
+                {status === "rejected" && rec && (
+                  <div className="mt-4 border-t border-neutral-100 pt-4">
+                    <form action={reopenMilestone.bind(null, rec.id, `/lms/manager/adv/${enrollmentId}`)}>
+                      <button type="submit" className="inline-flex items-center gap-1.5 rounded-xl bg-blue-50 px-4 py-2 text-sm font-semibold text-brand hover:bg-blue-100">
+                        <RotateCcw className="h-4 w-4" /> Ajukan Ulang Kelulusan
+                      </button>
+                    </form>
                   </div>
                 )}
               </div>

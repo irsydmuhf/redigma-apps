@@ -228,6 +228,18 @@ export async function deleteModule(moduleId: string, programId: string) {
   await requireManagerOrAdmin();
   const admin = createAdminClient();
   await admin.from("lms_program_modules").delete().eq("id", moduleId);
+
+  // Reconcile agar ADV yang modul AKTIF-nya terhapus tidak nyangkut tanpa
+  // modul in_progress (modul berikutnya yang layak akan dibuka otomatis).
+  const { data: enrolls } = await admin
+    .from("lms_program_enrollments")
+    .select("id")
+    .eq("program_id", programId)
+    .eq("status", "active");
+  for (const e of enrolls ?? []) {
+    await admin.rpc("lms_reconcile_progress", { p_enrollment_id: e.id });
+  }
+
   redirect(editPath(programId));
 }
 
@@ -396,14 +408,14 @@ export async function createMilestone(programId: string, formData: FormData) {
     order_index: (last?.order_index ?? -1) + 1,
   });
 
-  // Backfill: award milestone ini ke ADV yang modulnya sudah memenuhi syarat.
-  // (Milestone biasa di-award otomatis saat modul selesai, tapi kalau dibuat
-  //  SETELAH modul selesai, tidak ada yang men-trigger — jadi backfill di sini.)
+  // Backfill: award milestone ini ke ADV AKTIF yang modulnya sudah memenuhi
+  // syarat. (Hanya 'active' — enrollment yang sudah 'completed' tidak ditarik
+  // kembali ke antrian approval / diberi sertifikat ganda.)
   const { data: enrolls } = await admin
     .from("lms_program_enrollments")
     .select("id")
     .eq("program_id", programId)
-    .in("status", ["active", "completed"]);
+    .eq("status", "active");
   for (const e of enrolls ?? []) {
     await admin.rpc("lms_check_and_award_milestones", { p_enrollment_id: e.id });
   }
