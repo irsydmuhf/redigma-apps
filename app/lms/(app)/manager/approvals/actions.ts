@@ -3,6 +3,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentLmsUser } from "@/lib/lms/current-user";
 import { generateCertificatePdf } from "@/lib/lms/certificate";
+import { notify } from "@/lib/lms/notify";
 import { redirect } from "next/navigation";
 
 export async function approveEnrollment(enrollmentId: string) {
@@ -27,6 +28,22 @@ export async function approveEnrollment(enrollmentId: string) {
   // Init module progress untuk ADV yang baru diapprove
   await admin.rpc("lms_init_module_progress", { p_enrollment_id: enrollmentId });
 
+  const { data: enr } = await admin
+    .from("lms_program_enrollments")
+    .select("user_id, lms_programs(name)")
+    .eq("id", enrollmentId)
+    .single();
+  if (enr) {
+    const prog = Array.isArray(enr.lms_programs) ? enr.lms_programs[0] : enr.lms_programs;
+    await notify({
+      userId: enr.user_id,
+      type: "enrollment",
+      title: "Pendaftaran disetujui 🎉",
+      body: `Kamu sekarang bisa mulai belajar di program ${prog?.name ?? ""}.`,
+      link: "/lms/dashboard",
+    });
+  }
+
   redirect(`/lms/manager/approvals?msg=${encodeURIComponent('Enrollment berhasil disetujui')}`);
 }
 
@@ -44,6 +61,23 @@ export async function rejectEnrollment(enrollmentId: string) {
     .eq("status", "pending");
 
   if (error) throw new Error(error.message);
+
+  const { data: enr } = await admin
+    .from("lms_program_enrollments")
+    .select("user_id, lms_programs(name)")
+    .eq("id", enrollmentId)
+    .single();
+  if (enr) {
+    const prog = Array.isArray(enr.lms_programs) ? enr.lms_programs[0] : enr.lms_programs;
+    await notify({
+      userId: enr.user_id,
+      type: "enrollment",
+      title: "Pendaftaran ditolak",
+      body: `Pendaftaranmu ke program ${prog?.name ?? ""} belum disetujui. Hubungi Manager untuk info lebih lanjut.`,
+      link: "/lms/dashboard",
+    });
+  }
+
   redirect(`/lms/manager/approvals?msg=${encodeURIComponent('Enrollment berhasil ditolak')}`);
 }
 
@@ -121,6 +155,14 @@ export async function approveMilestone(advMilestoneId: string, redirectTo: strin
     .update({ status: "completed" })
     .eq("id", am.enrollment_id);
 
+  await notify({
+    userId: enr.user_id,
+    type: "milestone",
+    title: "Selamat, kamu lulus! 🎓",
+    body: `Sertifikat untuk "${ms?.name ?? "Kelulusan"}" sudah diterbitkan. Unduh di dashboard.`,
+    link: "/lms/dashboard",
+  });
+
   redirect(`${redirectTo}?msg=${encodeURIComponent("Kelulusan disetujui & sertifikat diterbitkan")}`);
 }
 
@@ -131,12 +173,35 @@ export async function rejectMilestone(advMilestoneId: string, redirectTo: string
   }
 
   const admin = createAdminClient();
+  const { data: am } = await admin
+    .from("lms_adv_milestones")
+    .select("enrollment_id")
+    .eq("id", advMilestoneId)
+    .single();
+
   const { error } = await admin
     .from("lms_adv_milestones")
     .update({ status: "rejected" })
     .eq("id", advMilestoneId)
     .eq("status", "pending_approval");
   if (error) throw new Error(error.message);
+
+  if (am) {
+    const { data: enr } = await admin
+      .from("lms_program_enrollments")
+      .select("user_id")
+      .eq("id", am.enrollment_id)
+      .single();
+    if (enr) {
+      await notify({
+        userId: enr.user_id,
+        type: "milestone",
+        title: "Pengajuan kelulusan ditolak",
+        body: "Pengajuan kelulusanmu belum disetujui Manager. Hubungi Manager untuk info lebih lanjut.",
+        link: "/lms/dashboard",
+      });
+    }
+  }
 
   redirect(`${redirectTo}?msg=${encodeURIComponent("Pengajuan kelulusan ditolak")}`);
 }

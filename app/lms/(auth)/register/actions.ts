@@ -2,6 +2,7 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentLmsUser } from "@/lib/lms/current-user";
+import { notifyNewEnrollment } from "@/lib/lms/notify";
 import { redirect } from "next/navigation";
 
 export async function lmsRegister(formData: FormData) {
@@ -72,6 +73,8 @@ export async function lmsRegister(formData: FormData) {
     { onConflict: "user_id,program_id" }
   );
 
+  await notifyNewEnrollment(link.program_id, userId);
+
   redirect("/lms/login?registered=true");
 }
 
@@ -108,6 +111,8 @@ export async function lmsJoinProgram(formData: FormData) {
     },
     { onConflict: "user_id,program_id" }
   );
+
+  await notifyNewEnrollment(link.program_id, me.id);
 
   redirect("/lms/dashboard");
 }

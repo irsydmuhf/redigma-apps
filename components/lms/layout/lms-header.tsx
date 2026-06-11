@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/button";
 import type { LmsUser } from "@/lib/lms/current-user";
 import { LmsMobileNav } from "@/components/lms/layout/lms-mobile-nav";
+import { NotificationBell } from "@/components/lms/layout/notification-bell";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 const ROLE_LABEL: Record<string, string> = {
   adv: "Advertiser",
@@ -8,8 +10,23 @@ const ROLE_LABEL: Record<string, string> = {
   admin: "Admin",
 };
 
-export function LmsHeader({ user }: { user: LmsUser }) {
+export async function LmsHeader({ user }: { user: LmsUser }) {
   const initial = user.fullName?.charAt(0).toUpperCase() || "?";
+
+  const admin = createAdminClient();
+  const [{ data: notifications }, { count: unreadCount }] = await Promise.all([
+    admin
+      .from("lms_notifications")
+      .select("id, type, title, body, link, is_read, created_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(15),
+    admin
+      .from("lms_notifications")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("is_read", false),
+  ]);
 
   return (
     <header className="flex h-16 items-center justify-between gap-3 border-b border-neutral-100 bg-white px-4 sm:px-6 lg:px-8">
@@ -21,6 +38,7 @@ export function LmsHeader({ user }: { user: LmsUser }) {
       </div>
 
       <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+        <NotificationBell notifications={notifications ?? []} unreadCount={unreadCount ?? 0} />
         <div className="flex items-center gap-2 rounded-full bg-neutral-50 py-1.5 pl-1.5 sm:gap-3 sm:pr-4 pr-1.5">
           <div className="mesh-blue grid h-8 w-8 shrink-0 place-items-center rounded-full text-sm font-bold text-white">
             {initial}

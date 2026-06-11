@@ -2,7 +2,18 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentLmsUser } from "@/lib/lms/current-user";
+import { notify } from "@/lib/lms/notify";
 import { redirect } from "next/navigation";
+
+/** Ambil user_id ADV dari enrollment. */
+async function advUserId(admin: ReturnType<typeof createAdminClient>, enrollmentId: string) {
+  const { data } = await admin
+    .from("lms_program_enrollments")
+    .select("user_id")
+    .eq("id", enrollmentId)
+    .single();
+  return data?.user_id as string | undefined;
+}
 
 export async function submitTask(
   taskId: string,
@@ -99,6 +110,17 @@ export async function approveSubmission(submissionId: string, moduleId: string) 
     });
   }
 
+  const advId = await advUserId(admin, sub.enrollment_id);
+  if (advId) {
+    await notify({
+      userId: advId,
+      type: "submission",
+      title: "Task disetujui ✅",
+      body: "Salah satu task-mu disetujui Manager.",
+      link: task ? `/lms/module/${task.module_id}?tab=tasks` : "/lms/dashboard",
+    });
+  }
+
   redirect(`/lms/manager/approvals?msg=${encodeURIComponent('Submission berhasil disetujui')}`);
 }
 
@@ -112,6 +134,12 @@ export async function rejectSubmission(submissionId: string, formData: FormData)
   if (!comment) throw new Error("Komentar wajib diisi saat menolak submission.");
 
   const admin = createAdminClient();
+  const { data: sub } = await admin
+    .from("lms_task_submissions")
+    .select("enrollment_id, lms_module_tasks(module_id)")
+    .eq("id", submissionId)
+    .single();
+
   const { error } = await admin
     .from("lms_task_submissions")
     .update({
@@ -123,6 +151,21 @@ export async function rejectSubmission(submissionId: string, formData: FormData)
     .eq("id", submissionId);
 
   if (error) throw new Error(error.message);
+
+  if (sub) {
+    const advId = await advUserId(admin, sub.enrollment_id);
+    const taskRel = Array.isArray(sub.lms_module_tasks) ? sub.lms_module_tasks[0] : sub.lms_module_tasks;
+    if (advId) {
+      await notify({
+        userId: advId,
+        type: "submission",
+        title: "Task perlu diperbaiki",
+        body: comment,
+        link: taskRel?.module_id ? `/lms/module/${taskRel.module_id}?tab=tasks` : "/lms/dashboard",
+      });
+    }
+  }
+
   redirect(`/lms/manager/approvals?msg=${encodeURIComponent('Submission berhasil ditolak')}`);
 }
 
@@ -170,5 +213,50 @@ export async function submitPostTest(
   });
 
   if (error) throw new Error(error.message);
+
+  // Gagal 3x → notifikasi ke ADV & Manager untuk koordinasi manual
+  const { data: attempts } = await admin
+    .from("lms_post_test_attempts")
+    .select("passed, lms_post_tests(module_id)")
+    .eq("enrollment_id", enrollmentId);
+  const moduleAttempts = (attempts ?? []).filter((a) => {
+    const pt = Array.isArray(a.lms_post_tests) ? a.lms_post_tests[0] : a.lms_post_tests;
+    return pt?.module_id === moduleId;
+  });
+  const anyPassed = moduleAttempts.some((a) => a.passed);
+  if (!anyPassed && moduleAttempts.length >= 3) {
+    const { data: enr } = await admin
+      .from("lms_program_enrollments")
+      .select("user_id, lms_programs(name, created_by)")
+      .eq("id", enrollmentId)
+      .single();
+    const { data: mod } = await admin
+      .from("lms_program_modules")
+      .select("title")
+      .eq("id", moduleId)
+      .maybeSingle();
+    const prog = enr ? (Array.isArray(enr.lms_programs) ? enr.lms_programs[0] : enr.lms_programs) : null;
+    const modLabel = mod?.title ? `modul "${mod.title}"` : "sebuah modul";
+
+    if (enr) {
+      await notify({
+        userId: enr.user_id,
+        type: "posttest",
+        title: "Post-test gagal 3x",
+        body: `Kamu sudah 3x gagal post-test ${modLabel}. Manager akan menghubungimu untuk bantuan.`,
+        link: `/lms/module/${moduleId}?tab=posttest`,
+      });
+    }
+    if (prog?.created_by) {
+      await notify({
+        userId: prog.created_by,
+        type: "posttest",
+        title: "ADV gagal post-test 3x",
+        body: `Seorang ADV di program ${prog.name} gagal 3x post-test ${modLabel}. Perlu koordinasi manual.`,
+        link: "/lms/manager/progress",
+      });
+    }
+  }
+
   redirect(`/lms/module/${moduleId}?tab=posttest&score=${score}`);
 }
