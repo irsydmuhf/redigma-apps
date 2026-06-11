@@ -1,7 +1,7 @@
 import { getCurrentLmsUser } from "@/lib/lms/current-user";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { BookOpen, CheckCircle2, PlayCircle, PlusCircle, ChevronRight, Trophy } from "lucide-react";
+import { BookOpen, CheckCircle2, PlayCircle, PlusCircle, ChevronRight, Trophy, Award, Download } from "lucide-react";
 import Link from "next/link";
 
 export default async function LmsDashboardPage() {
@@ -136,11 +136,17 @@ export default async function LmsDashboardPage() {
 
   const { data: achievedRaw } = await supabase
     .from("lms_adv_milestones")
-    .select("milestone_id, achieved_at")
+    .select("milestone_id, achieved_at, status, certificate_url")
     .eq("enrollment_id", enrollment.id)
     .order("achieved_at", { ascending: false });
 
   const achievedIds = new Set((achievedRaw ?? []).map((a) => a.milestone_id));
+  const certificate = (achievedRaw ?? []).find(
+    (a) => a.status === "approved" && a.certificate_url
+  );
+  const certMilestone = certificate
+    ? (milestones ?? []).find((m) => m.id === certificate.milestone_id)
+    : null;
   const achievedList = (milestones ?? []).filter((m) => achievedIds.has(m.id))
     .sort((a, b) => b.required_modules_completed - a.required_modules_completed);
   const nextMilestone = (milestones ?? []).find((m) => !achievedIds.has(m.id));
@@ -160,6 +166,23 @@ export default async function LmsDashboardPage() {
           )}
         </p>
       </div>
+
+      {/* Sertifikat kelulusan */}
+      {certificate?.certificate_url && (
+        <div className="flex items-center gap-4 rounded-3xl border border-yellow-200 bg-gradient-to-br from-yellow-50 to-white p-6">
+          <Award className="h-10 w-10 shrink-0 text-yellow-500" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-neutral-900">Selamat, kamu lulus! 🎉</p>
+            <p className="text-xs text-neutral-500">
+              {certMilestone?.name ?? "Sertifikat kelulusan"} telah diterbitkan oleh Manager.
+            </p>
+          </div>
+          <a href={certificate.certificate_url} target="_blank" rel="noreferrer"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-neutral-900 px-4 py-2 text-sm font-semibold text-white hover:bg-neutral-700">
+            <Download className="h-4 w-4" /> Unduh Sertifikat
+          </a>
+        </div>
+      )}
 
       {/* Progress + Milestone */}
       <div className="grid gap-4 sm:grid-cols-2">

@@ -363,6 +363,7 @@ export async function createMilestone(programId: string, formData: FormData) {
     description: String(formData.get("description") ?? "").trim() || null,
     required_modules_completed: Number(formData.get("required_modules_completed")) || 1,
     emoji: String(formData.get("emoji") ?? "🏆").trim() || "🏆",
+    is_final: formData.get("is_final") === "on",
     order_index: (last?.order_index ?? -1) + 1,
   });
   redirect(editPath(programId));

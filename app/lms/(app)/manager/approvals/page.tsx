@@ -1,7 +1,8 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { approveEnrollment, rejectEnrollment } from "./actions";
+import Link from "next/link";
+import { approveEnrollment, rejectEnrollment, approveMilestone, rejectMilestone } from "./actions";
 import { approveSubmission, rejectSubmission } from "@/app/lms/(app)/module/[id]/actions";
-import { CheckCircle2, XCircle, Clock, Upload, Link2 } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, Upload, Link2, Award } from "lucide-react";
 import { FlashMessage } from "@/components/lms/ui/flash-message";
 
 export default async function LmsApprovalsPage({
@@ -70,7 +71,44 @@ export default async function LmsApprovalsPage({
   const subEnrollMap = Object.fromEntries((subEnrollments ?? []).map((e) => [e.id, e]));
   const subProfileMap = Object.fromEntries((subProfiles ?? []).map((p) => [p.id, p]));
 
-  const totalPending = enrollments.length + submissions.length;
+  // ── Kelulusan (final milestone) pending ───────────────────
+  const { data: rawFinals } = await admin
+    .from("lms_adv_milestones")
+    .select("id, enrollment_id, milestone_id, achieved_at")
+    .eq("status", "pending_approval")
+    .order("achieved_at", { ascending: true });
+
+  const finals = rawFinals ?? [];
+  const finalMsIds = [...new Set(finals.map((f) => f.milestone_id))];
+  const finalEnrollIds = [...new Set(finals.map((f) => f.enrollment_id))];
+
+  const [{ data: finalMs }, { data: finalEnrolls }] = await Promise.all([
+    finalMsIds.length
+      ? admin.from("lms_milestones").select("id, name, emoji").in("id", finalMsIds)
+      : Promise.resolve({ data: [] }),
+    finalEnrollIds.length
+      ? admin.from("lms_program_enrollments").select("id, user_id, program_id").in("id", finalEnrollIds)
+      : Promise.resolve({ data: [] }),
+  ]);
+
+  const finalUserIds = [...new Set((finalEnrolls ?? []).map((e) => e.user_id))];
+  const finalProgIds = [...new Set((finalEnrolls ?? []).map((e) => e.program_id))];
+
+  const [{ data: finalProfiles }, { data: finalPrograms }] = await Promise.all([
+    finalUserIds.length
+      ? admin.from("lms_user_profiles").select("id, full_name, email").in("id", finalUserIds)
+      : Promise.resolve({ data: [] }),
+    finalProgIds.length
+      ? admin.from("lms_programs").select("id, name").in("id", finalProgIds)
+      : Promise.resolve({ data: [] }),
+  ]);
+
+  const finalMsMap = Object.fromEntries((finalMs ?? []).map((m) => [m.id, m]));
+  const finalEnrollMap = Object.fromEntries((finalEnrolls ?? []).map((e) => [e.id, e]));
+  const finalProfileMap = Object.fromEntries((finalProfiles ?? []).map((p) => [p.id, p]));
+  const finalProgMap = Object.fromEntries((finalPrograms ?? []).map((p) => [p.id, p]));
+
+  const totalPending = enrollments.length + submissions.length + finals.length;
 
   return (
     <div className="space-y-8">
@@ -83,6 +121,60 @@ export default async function LmsApprovalsPage({
             : `${totalPending} item menunggu persetujuan.`}
         </p>
       </div>
+
+      {/* Kelulusan (final milestone) approvals */}
+      {finals.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="flex items-center gap-1.5 text-sm font-semibold text-neutral-700">
+            <Award className="h-4 w-4 text-yellow-500" /> Kelulusan ({finals.length})
+          </h2>
+          <div className="space-y-3">
+            {finals.map((f) => {
+              const enr = finalEnrollMap[f.enrollment_id];
+              const adv = enr ? finalProfileMap[enr.user_id] : null;
+              const prog = enr ? finalProgMap[enr.program_id] : null;
+              const ms = finalMsMap[f.milestone_id];
+              const date = new Date(f.achieved_at).toLocaleDateString("id-ID", {
+                day: "numeric", month: "short", year: "numeric",
+              });
+              return (
+                <div key={f.id} className="rounded-3xl border border-yellow-100 bg-yellow-50/40 p-6 space-y-4">
+                  <div className="flex items-start gap-3">
+                    <span className="text-2xl">{ms?.emoji ?? "🎓"}</span>
+                    <div className="space-y-1 min-w-0">
+                      <p className="font-semibold text-neutral-900">{ms?.name ?? "Kelulusan"}</p>
+                      <p className="text-xs text-neutral-500">
+                        ADV: <span className="font-medium text-neutral-700">{adv?.full_name ?? "—"}</span>
+                        {" · "}{prog?.name ?? "—"}{" · tercapai "}{date}
+                      </p>
+                      <p className="text-xs text-neutral-400">
+                        Menyetujui akan menerbitkan sertifikat & menandai ADV lulus.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 border-t border-yellow-100 pt-4">
+                    <form action={approveMilestone.bind(null, f.id, "/lms/manager/approvals")}>
+                      <button type="submit" className="flex items-center gap-1.5 rounded-xl bg-green-50 px-4 py-2 text-sm font-semibold text-green-700 hover:bg-green-100">
+                        <CheckCircle2 className="h-4 w-4" /> Setujui & Terbitkan Sertifikat
+                      </button>
+                    </form>
+                    <form action={rejectMilestone.bind(null, f.id, "/lms/manager/approvals")}>
+                      <button type="submit" className="flex items-center gap-1.5 rounded-xl bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100">
+                        <XCircle className="h-4 w-4" /> Tolak
+                      </button>
+                    </form>
+                    {enr && (
+                      <Link href={`/lms/manager/adv/${f.enrollment_id}`} className="ml-auto text-xs text-neutral-500 hover:text-neutral-700 hover:underline">
+                        Lihat detail ADV
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Enrollment approvals */}
       {enrollments.length > 0 && (

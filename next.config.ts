@@ -8,6 +8,9 @@ experimental: {
   },
 },
 
+  // @react-pdf/renderer harus dijalankan di Node runtime, bukan di-bundle
+  serverExternalPackages: ["@react-pdf/renderer"],
+
   /* config options here */
 };
 

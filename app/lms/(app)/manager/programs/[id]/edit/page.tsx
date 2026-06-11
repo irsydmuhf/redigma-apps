@@ -52,7 +52,7 @@ export default async function EditProgramPage({ params, searchParams }: Props) {
 
   const { data: milestonesData } = await admin
     .from("lms_milestones")
-    .select("id, name, description, required_modules_completed, emoji, order_index")
+    .select("id, name, description, required_modules_completed, emoji, order_index, is_final")
     .eq("program_id", programId)
     .order("required_modules_completed", { ascending: true });
 
@@ -432,7 +432,14 @@ export default async function EditProgramPage({ params, searchParams }: Props) {
               <div key={m.id} className="flex items-center gap-3 rounded-3xl border border-neutral-100 bg-white px-5 py-3.5">
                 <span className="text-lg">{m.emoji}</span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-neutral-900">{m.name}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-semibold text-neutral-900">{m.name}</p>
+                    {m.is_final && (
+                      <span className="rounded-full bg-yellow-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-yellow-700">
+                        Final · Sertifikat
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-neutral-400">
                     Setelah {m.required_modules_completed} modul selesai
                     {m.description && ` · ${m.description}`}
@@ -463,6 +470,15 @@ export default async function EditProgramPage({ params, searchParams }: Props) {
             </div>
             <input name="description" placeholder="Deskripsi singkat (opsional)"
               className="w-full rounded-2xl border border-neutral-200 px-4 py-2.5 text-sm outline-none focus:border-neutral-400" />
+            <label className="flex items-start gap-2.5 rounded-2xl border border-neutral-200 px-4 py-3 cursor-pointer hover:border-neutral-300">
+              <input name="is_final" type="checkbox" className="mt-0.5 h-4 w-4 accent-neutral-900" />
+              <span className="text-sm text-neutral-700">
+                Milestone <span className="font-semibold">final (kelulusan)</span>
+                <span className="block text-xs text-neutral-400">
+                  Saat tercapai, butuh persetujuan Manager dan menerbitkan sertifikat untuk ADV.
+                </span>
+              </span>
+            </label>
             <div className="flex justify-end">
               <button type="submit" className="rounded-2xl bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-neutral-700">
                 <Plus className="inline h-4 w-4 mr-1" />Tambah Milestone

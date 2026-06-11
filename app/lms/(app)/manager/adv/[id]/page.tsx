@@ -2,19 +2,23 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import {
-  ChevronLeft, Clock, AlertTriangle, CheckCircle2, Lock, PlayCircle,
-  FileText, ExternalLink, Image as ImageIcon,
+  ChevronLeft, Clock, AlertTriangle, CheckCircle2, XCircle, Lock, PlayCircle,
+  FileText, ExternalLink, Image as ImageIcon, Award, Download,
 } from "lucide-react";
 import { summarizeEnrollment, moduleOf, sortByCurriculum, nested } from "@/lib/lms/progress";
+import { FlashMessage } from "@/components/lms/ui/flash-message";
+import { approveMilestone, rejectMilestone } from "@/app/lms/(app)/manager/approvals/actions";
 
 interface Props {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ msg?: string }>;
 }
 
 const DAY_MS = 86_400_000;
 
-export default async function AdvDetailPage({ params }: Props) {
+export default async function AdvDetailPage({ params, searchParams }: Props) {
   const { id: enrollmentId } = await params;
+  const { msg } = await searchParams;
   const admin = createAdminClient();
 
   const { data: enrollment } = await admin
@@ -56,6 +60,21 @@ export default async function AdvDetailPage({ params }: Props) {
     .select("id", { count: "exact", head: true })
     .in("phase_id", phaseIds);
 
+  // Kelulusan: milestone final program + status pencapaian ADV ini
+  const [{ data: finalMilestones }, { data: advMilestones }] = await Promise.all([
+    admin
+      .from("lms_milestones")
+      .select("id, name, emoji")
+      .eq("program_id", enrollment.program_id)
+      .eq("is_final", true)
+      .order("order_index", { ascending: true }),
+    admin
+      .from("lms_adv_milestones")
+      .select("id, milestone_id, status, certificate_url, approved_at")
+      .eq("enrollment_id", enrollmentId),
+  ]);
+  const advMsMap = Object.fromEntries((advMilestones ?? []).map((a) => [a.milestone_id, a]));
+
   const summary = summarizeEnrollment(progressRows ?? [], totalModules ?? (progressRows ?? []).length);
   const sortedModules = sortByCurriculum((progressRows ?? []).filter((p) => moduleOf(p)));
 
@@ -86,6 +105,7 @@ export default async function AdvDetailPage({ params }: Props) {
 
   return (
     <div className="space-y-6 pb-16">
+      <FlashMessage message={msg} />
       {/* Header */}
       <div className="space-y-1">
         <Link
@@ -144,6 +164,73 @@ export default async function AdvDetailPage({ params }: Props) {
           )}
         </div>
       </div>
+
+      {/* Kelulusan & Sertifikat */}
+      {(finalMilestones ?? []).length > 0 && (
+        <div className="space-y-3">
+          <h2 className="flex items-center gap-1.5 text-lg font-semibold text-neutral-900">
+            <Award className="h-5 w-5 text-yellow-500" /> Kelulusan & Sertifikat
+          </h2>
+          {(finalMilestones ?? []).map((m) => {
+            const rec = advMsMap[m.id];
+            const status = rec?.status as string | undefined;
+            return (
+              <div key={m.id} className="rounded-3xl border border-neutral-100 bg-white p-5">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <span className="text-2xl">{m.emoji}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-neutral-900">{m.name}</p>
+                    <p className="text-xs text-neutral-400">
+                      {!rec
+                        ? "Belum tercapai — ADV belum menyelesaikan modul yang dibutuhkan."
+                        : status === "pending_approval"
+                        ? "Menunggu persetujuan Manager."
+                        : status === "approved"
+                        ? `Lulus${rec.approved_at ? " · " + new Date(rec.approved_at).toLocaleDateString("id-ID", { dateStyle: "medium" }) : ""}`
+                        : status === "rejected"
+                        ? "Pengajuan kelulusan ditolak."
+                        : "Tercapai."}
+                    </p>
+                  </div>
+                  {status === "approved" && (
+                    <span className="rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700">Lulus</span>
+                  )}
+                  {status === "pending_approval" && (
+                    <span className="rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-semibold text-yellow-700">Menunggu</span>
+                  )}
+                  {status === "rejected" && (
+                    <span className="rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-semibold text-red-700">Ditolak</span>
+                  )}
+                </div>
+
+                {status === "pending_approval" && rec && (
+                  <div className="mt-4 flex items-center gap-3 border-t border-neutral-100 pt-4">
+                    <form action={approveMilestone.bind(null, rec.id, `/lms/manager/adv/${enrollmentId}`)}>
+                      <button type="submit" className="flex items-center gap-1.5 rounded-xl bg-green-50 px-4 py-2 text-sm font-semibold text-green-700 hover:bg-green-100">
+                        <CheckCircle2 className="h-4 w-4" /> Setujui & Terbitkan Sertifikat
+                      </button>
+                    </form>
+                    <form action={rejectMilestone.bind(null, rec.id, `/lms/manager/adv/${enrollmentId}`)}>
+                      <button type="submit" className="flex items-center gap-1.5 rounded-xl bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100">
+                        <XCircle className="h-4 w-4" /> Tolak
+                      </button>
+                    </form>
+                  </div>
+                )}
+
+                {status === "approved" && rec?.certificate_url && (
+                  <div className="mt-4 border-t border-neutral-100 pt-4">
+                    <a href={rec.certificate_url} target="_blank" rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-neutral-900 px-4 py-2 text-sm font-semibold text-white hover:bg-neutral-700">
+                      <Download className="h-4 w-4" /> Unduh Sertifikat (PDF)
+                    </a>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Per-modul detail */}
       <div className="space-y-3">
