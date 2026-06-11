@@ -29,6 +29,7 @@
 @theme {
   --color-brand: var(--brand-blue);
   --color-brand-yellow: var(--brand-yellow);
+  --color-brand-dark: #062f56;
 
   --color-blue-500: #07569d;
   --color-blue-600: #07569d;
@@ -36,6 +37,10 @@
 
   --color-yellow-400: #ffc700;
   --color-yellow-500: #ffc700;
+
+  /* Heading & tombol primer (pakai neutral-900) → navy gelap brand, bukan
+     hitam netral, supaya tetap mengutamakan branding namun tetap terbaca. */
+  --color-neutral-900: #062f56;
 }
 
 /* Funnel Display untuk heading di LMS */
