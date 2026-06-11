@@ -9,6 +9,7 @@ import {
   ChevronLeft, Upload, Link2, HelpCircle, AlertCircle, RotateCcw,
 } from "lucide-react";
 import { FlashMessage } from "@/components/lms/ui/flash-message";
+import { resolveVideo } from "@/lib/lms/video";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -158,12 +159,6 @@ export default async function ModulePage({ params, searchParams }: Props) {
     (a: any, b: any) => a.order_index - b.order_index
   );
 
-  function getEmbedUrl(url: string) {
-    const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/);
-    if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}`;
-    return url;
-  }
-
   const tabClass = (t: string) =>
     t === tab
       ? "rounded-full bg-neutral-900 px-4 py-2 text-sm font-semibold text-white"
@@ -231,17 +226,24 @@ export default async function ModulePage({ params, searchParams }: Props) {
                   <p className="text-sm text-neutral-700 whitespace-pre-wrap leading-relaxed">{c.content_text}</p>
                 </div>
               )}
-              {c.type === "video" && c.video_url && (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm font-medium text-neutral-700">
-                    <Video className="h-4 w-4 text-red-500" /> Video
+              {c.type === "video" && c.video_url && (() => {
+                const v = resolveVideo(c.video_url);
+                return (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm font-medium text-neutral-700">
+                      <Video className="h-4 w-4 text-red-500" /> Video
+                    </div>
+                    <div className="aspect-video w-full overflow-hidden rounded-2xl bg-neutral-900">
+                      {v.kind === "file" ? (
+                        <video src={v.src} controls controlsList="nodownload" className="h-full w-full" />
+                      ) : (
+                        <iframe src={v.src} className="h-full w-full" allowFullScreen
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" />
+                      )}
+                    </div>
                   </div>
-                  <div className="aspect-video w-full overflow-hidden rounded-2xl bg-neutral-100">
-                    <iframe src={getEmbedUrl(c.video_url)} className="h-full w-full" allowFullScreen
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" />
-                  </div>
-                </div>
-              )}
+                );
+              })()}
               {c.type === "file" && c.file_url && (
                 <a href={c.file_url} target="_blank" rel="noopener noreferrer"
                   className="flex items-center gap-3 rounded-2xl border border-neutral-200 px-4 py-3 hover:bg-neutral-50">
