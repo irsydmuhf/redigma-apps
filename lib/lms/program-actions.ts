@@ -210,6 +210,17 @@ export async function addModule(phaseId: string, programId: string, formData: Fo
     order_index: (last?.order_index ?? -1) + 1,
   });
 
+  // Reconcile progress ADV yang sudah berjalan agar modul baru punya progress
+  // row & terbuka bila modul sebelumnya sudah selesai (bukan terkunci selamanya).
+  const { data: enrolls } = await admin
+    .from("lms_program_enrollments")
+    .select("id")
+    .eq("program_id", programId)
+    .in("status", ["active", "completed"]);
+  for (const e of enrolls ?? []) {
+    await admin.rpc("lms_reconcile_progress", { p_enrollment_id: e.id });
+  }
+
   redirect(editPath(programId));
 }
 
