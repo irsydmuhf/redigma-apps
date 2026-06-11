@@ -17,10 +17,7 @@ const funnelDisplay = Funnel_Display({
 export const metadata: Metadata = {
   title: "Database Redigma",
   description: "Konsolidasi data divisi Redigma",
-  icons: {
-    icon: "/redigma-logo/logomark-yellow.png",
-    apple: "/redigma-logo/logomark-yellow.png",
-  },
+  // Favicon/icon via file convention: app/icon.png, app/apple-icon.png, app/favicon.ico
 };
 
 export default function RootLayout({
