@@ -22,11 +22,13 @@ export const getCurrentLmsUser = cache(async (): Promise<LmsUser | null> => {
 
   const { data: profile } = await supabase
     .from("lms_user_profiles")
-    .select("id, email, full_name, role, avatar_url")
+    .select("id, email, full_name, role, avatar_url, is_active")
     .eq("id", session.user.id)
     .single();
 
   if (!profile) return null;
+  // User dinonaktifkan admin → tidak boleh akses LMS.
+  if (profile.is_active === false) return null;
 
   return {
     id: profile.id as string,
