@@ -41,7 +41,7 @@ export function LmsSidebar({ role }: { role: LmsRole }) {
               href={item.href}
               className={`flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium transition ${
                 active
-                  ? "bg-neutral-900 text-white"
+                  ? "bg-brand text-white"
                   : "text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900"
               }`}
             >

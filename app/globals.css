@@ -5,6 +5,10 @@
   --foreground: #1a1a1a;
   --surface: #fafafa;
   --border: #e5e7eb;
+
+  /* === Brand Redigma === */
+  --brand-blue: #07569d;
+  --brand-yellow: #ffc700;
 }
 
 @theme inline {
@@ -14,6 +18,24 @@
   --color-border: var(--border);
   --font-sans: var(--font-roboto);
   --font-funnel: var(--font-funnel);
+}
+
+/* === Warna brand Redigma — seragamkan biru & kuning di seluruh aplikasi ===
+   Token brand siap pakai: bg-brand / text-brand / border-brand,
+   bg-brand-yellow / text-brand-yellow.
+   Langkah biru & kuning Tailwind yang umum dipakai sebagai aksen/primer
+   di-override ke hex brand agar utility lama (blue-600, yellow-500, dst.)
+   otomatis ikut seragam. */
+@theme {
+  --color-brand: var(--brand-blue);
+  --color-brand-yellow: var(--brand-yellow);
+
+  --color-blue-500: #07569d;
+  --color-blue-600: #07569d;
+  --color-blue-700: #07569d;
+
+  --color-yellow-400: #ffc700;
+  --color-yellow-500: #ffc700;
 }
 
 /* Funnel Display untuk heading di LMS */
@@ -34,12 +56,12 @@ body {
 /* Setiap kelas mengaplikasikan latar gradien mesh dengan warna khas Google. */
 
 .mesh-blue {
-  background-color: #1a73e8;
+  background-color: #07569d;
   background-image:
-    radial-gradient(at 20% 20%, #4285f4 0%, transparent 55%),
-    radial-gradient(at 80% 10%, #34a8ff 0%, transparent 50%),
-    radial-gradient(at 90% 90%, #6c5ce7 0%, transparent 55%),
-    radial-gradient(at 10% 90%, #1a73e8 0%, transparent 55%);
+    radial-gradient(at 20% 20%, #0a6cc4 0%, transparent 55%),
+    radial-gradient(at 80% 10%, #1f7fd1 0%, transparent 50%),
+    radial-gradient(at 90% 90%, #053f73 0%, transparent 55%),
+    radial-gradient(at 10% 90%, #07569d 0%, transparent 55%);
 }
 
 .mesh-red {
@@ -52,12 +74,12 @@ body {
 }
 
 .mesh-yellow {
-  background-color: #fbbc04;
+  background-color: #ffc700;
   background-image:
-    radial-gradient(at 20% 20%, #fcd34d 0%, transparent 55%),
-    radial-gradient(at 80% 10%, #ffb347 0%, transparent 50%),
-    radial-gradient(at 90% 90%, #f59f00 0%, transparent 55%),
-    radial-gradient(at 10% 90%, #fbbc04 0%, transparent 55%);
+    radial-gradient(at 20% 20%, #ffd84d 0%, transparent 55%),
+    radial-gradient(at 80% 10%, #ffce26 0%, transparent 50%),
+    radial-gradient(at 90% 90%, #e6b400 0%, transparent 55%),
+    radial-gradient(at 10% 90%, #ffc700 0%, transparent 55%);
 }
 
 .mesh-green {
@@ -79,10 +101,10 @@ body {
 }
 
 .mesh-soft {
-  background-color: #f5f7ff;
+  background-color: #f6f9fc;
   background-image:
-    radial-gradient(at 0% 0%, rgba(66, 133, 244, 0.18) 0%, transparent 50%),
-    radial-gradient(at 100% 0%, rgba(234, 67, 53, 0.12) 0%, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(251, 188, 4, 0.12) 0%, transparent 50%),
-    radial-gradient(at 0% 100%, rgba(52, 168, 83, 0.14) 0%, transparent 50%);
+    radial-gradient(at 0% 0%, rgba(7, 86, 157, 0.16) 0%, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(7, 86, 157, 0.08) 0%, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(255, 199, 0, 0.16) 0%, transparent 50%),
+    radial-gradient(at 0% 100%, rgba(7, 86, 157, 0.10) 0%, transparent 50%);
 }
