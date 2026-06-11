@@ -1,9 +1,19 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getCurrentLmsUser } from "@/lib/lms/current-user";
 import { BookOpen, Link2, PlusCircle, Pencil, BarChart2 } from "lucide-react";
 import Link from "next/link";
+import { FlashMessage } from "@/components/lms/ui/flash-message";
+import { DeleteProgramButton } from "@/components/lms/programs/delete-program-button";
 
-export default async function LmsProgramsPage() {
+export default async function LmsProgramsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ msg?: string }>;
+}) {
+  const { msg } = await searchParams;
   const admin = createAdminClient();
+  const me = await getCurrentLmsUser();
+  const isAdmin = me?.role === "admin";
 
   const { data } = await admin
     .from("lms_programs")
@@ -14,6 +24,7 @@ export default async function LmsProgramsPage() {
 
   return (
     <div className="space-y-6">
+      <FlashMessage message={msg} />
       <div className="flex items-center justify-between">
         <div className="space-y-1">
           <h1 className="text-3xl font-bold tracking-tight text-neutral-900">
@@ -90,6 +101,9 @@ export default async function LmsProgramsPage() {
                 >
                   <Link2 className="h-4 w-4 text-neutral-500" />
                 </Link>
+                {isAdmin && (
+                  <DeleteProgramButton programId={p.id} programName={p.name} />
+                )}
               </div>
             </div>
           ))}

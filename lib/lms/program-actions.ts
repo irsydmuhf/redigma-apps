@@ -21,6 +21,14 @@ async function requireManagerOrAdmin() {
   return me;
 }
 
+async function requireAdmin() {
+  const me = await getCurrentLmsUser();
+  if (!me || me.role !== "admin") {
+    throw new Error("Hanya admin yang dapat menghapus program.");
+  }
+  return me;
+}
+
 // ── PROGRAM ──────────────────────────────────────────────────
 
 export async function createProgram(formData: FormData) {
@@ -40,6 +48,16 @@ export async function createProgram(formData: FormData) {
 
   if (error) throw new Error(error.message);
   redirect(`/lms/manager/programs/${data.id}/edit?msg=${encodeURIComponent('Program berhasil dibuat')}`);
+}
+
+/** Hapus program permanen (admin only). Cascade ke fase, modul, enrollment,
+ *  progress, milestone, sertifikat, dll. lewat FK ON DELETE CASCADE. */
+export async function deleteProgram(programId: string) {
+  await requireAdmin();
+  const admin = createAdminClient();
+  const { error } = await admin.from("lms_programs").delete().eq("id", programId);
+  if (error) throw new Error(error.message);
+  redirect(`/lms/manager/programs?msg=${encodeURIComponent("Program berhasil dihapus")}`);
 }
 
 export async function updateProgram(programId: string, formData: FormData) {
@@ -366,6 +384,19 @@ export async function createMilestone(programId: string, formData: FormData) {
     is_final: formData.get("is_final") === "on",
     order_index: (last?.order_index ?? -1) + 1,
   });
+
+  // Backfill: award milestone ini ke ADV yang modulnya sudah memenuhi syarat.
+  // (Milestone biasa di-award otomatis saat modul selesai, tapi kalau dibuat
+  //  SETELAH modul selesai, tidak ada yang men-trigger — jadi backfill di sini.)
+  const { data: enrolls } = await admin
+    .from("lms_program_enrollments")
+    .select("id")
+    .eq("program_id", programId)
+    .in("status", ["active", "completed"]);
+  for (const e of enrolls ?? []) {
+    await admin.rpc("lms_check_and_award_milestones", { p_enrollment_id: e.id });
+  }
+
   redirect(editPath(programId));
 }
 

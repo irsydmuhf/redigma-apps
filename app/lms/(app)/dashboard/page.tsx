@@ -140,7 +140,9 @@ export default async function LmsDashboardPage() {
     .eq("enrollment_id", enrollment.id)
     .order("achieved_at", { ascending: false });
 
-  const achievedIds = new Set((achievedRaw ?? []).map((a) => a.milestone_id));
+  const achievedIds = new Set(
+    (achievedRaw ?? []).filter((a) => a.status !== "rejected").map((a) => a.milestone_id)
+  );
   const certificate = (achievedRaw ?? []).find(
     (a) => a.status === "approved" && a.certificate_url
   );
