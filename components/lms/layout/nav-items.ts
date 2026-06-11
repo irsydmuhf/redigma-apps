@@ -5,6 +5,7 @@ import {
   Users,
   GraduationCap,
   BarChart2,
+  FileSpreadsheet,
   type LucideIcon,
 } from "lucide-react";
 import type { LmsRole } from "@/lib/lms/current-user";
@@ -22,6 +23,7 @@ const MANAGER_NAV: NavItem[] = [
   { href: "/lms/manager/approvals", label: "Persetujuan", icon: ClipboardCheck },
   { href: "/lms/manager/programs", label: "Program", icon: BookOpen },
   { href: "/lms/manager/progress", label: "Progress ADV", icon: BarChart2 },
+  { href: "/lms/manager/reports", label: "Laporan", icon: FileSpreadsheet },
 ];
 
 const ADMIN_NAV: NavItem[] = [
@@ -29,6 +31,7 @@ const ADMIN_NAV: NavItem[] = [
   { href: "/lms/manager/approvals", label: "Persetujuan", icon: ClipboardCheck },
   { href: "/lms/manager/programs", label: "Program", icon: BookOpen },
   { href: "/lms/manager/progress", label: "Progress ADV", icon: BarChart2 },
+  { href: "/lms/manager/reports", label: "Laporan", icon: FileSpreadsheet },
   { href: "/lms/admin/users", label: "Kelola User", icon: Users },
 ];
 

@@ -95,6 +95,27 @@ export default async function LmsManagerDashboardPage({ searchParams }: Props) {
   }
   const activeCount = onTrack + atRisk;
 
+  // Riwayat ADV lulus (status completed)
+  const completedEnrollments = enrollmentList.filter((e) => e.status === "completed");
+  const completedUserIds = [...new Set(completedEnrollments.map((e) => e.user_id))];
+  const completedIds = completedEnrollments.map((e) => e.id);
+  const [{ data: gradProfiles }, { data: gradMilestones }] = await Promise.all([
+    completedUserIds.length
+      ? admin.from("lms_user_profiles").select("id, full_name, email").in("id", completedUserIds)
+      : Promise.resolve({ data: [] as { id: string; full_name: string; email: string }[] }),
+    completedIds.length
+      ? admin.from("lms_adv_milestones").select("enrollment_id, approved_at").eq("status", "approved").in("enrollment_id", completedIds)
+      : Promise.resolve({ data: [] as { enrollment_id: string; approved_at: string | null }[] }),
+  ]);
+  const gradProfMap = Object.fromEntries((gradProfiles ?? []).map((p) => [p.id, p]));
+  const progNameMap = Object.fromEntries((programs ?? []).map((p) => [p.id, p.name]));
+  const gradDateMap: Record<string, string> = {};
+  for (const ms of gradMilestones ?? []) {
+    const at = ms.approved_at as string | null;
+    if (!at) continue;
+    if (!gradDateMap[ms.enrollment_id] || at > gradDateMap[ms.enrollment_id]) gradDateMap[ms.enrollment_id] = at;
+  }
+
   const stats = [
     { label: "ADV Aktif", value: activeCount, icon: Users, color: "text-neutral-900", bg: "bg-neutral-100", iconColor: "text-neutral-600" },
     { label: "On-Track", value: onTrack, icon: TrendingUp, color: "text-blue-600", bg: "bg-blue-50", iconColor: "text-blue-600" },
@@ -218,6 +239,52 @@ export default async function LmsManagerDashboardPage({ searchParams }: Props) {
           </div>
         </Link>
       </div>
+
+      {/* Riwayat ADV lulus */}
+      {completedEnrollments.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="flex items-center gap-1.5 text-lg font-semibold text-neutral-900">
+            <GraduationCap className="h-5 w-5 text-green-600" /> Riwayat ADV Lulus ({completedEnrollments.length})
+          </h2>
+          <div className="rounded-3xl border border-neutral-100 bg-white overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-neutral-100 text-left">
+                    <th className="px-6 py-4 font-semibold text-neutral-700">ADV</th>
+                    <th className="px-6 py-4 font-semibold text-neutral-700">Program</th>
+                    <th className="px-6 py-4 font-semibold text-neutral-700">Tanggal Lulus</th>
+                    <th className="px-6 py-4 font-semibold text-neutral-700 text-right">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-neutral-50">
+                  {completedEnrollments.map((e) => {
+                    const prof = gradProfMap[e.user_id];
+                    const date = gradDateMap[e.id];
+                    return (
+                      <tr key={e.id} className="hover:bg-neutral-50/50">
+                        <td className="px-6 py-4">
+                          <p className="font-medium text-neutral-900">{prof?.full_name ?? "—"}</p>
+                          <p className="text-xs text-neutral-400">{prof?.email}</p>
+                        </td>
+                        <td className="px-6 py-4 text-neutral-700">{progNameMap[e.program_id] ?? "—"}</td>
+                        <td className="px-6 py-4 text-neutral-500 text-xs">
+                          {date ? new Date(date).toLocaleDateString("id-ID", { dateStyle: "medium" }) : "—"}
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <Link href={`/lms/manager/adv/${e.id}`} className="text-xs font-medium text-brand hover:underline">
+                            Detail
+                          </Link>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
