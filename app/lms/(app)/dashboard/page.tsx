@@ -156,26 +156,54 @@ export default async function LmsDashboardPage() {
     }
   }
 
-  // Milestones
-  const { data: milestones } = await supabase
-    .from("lms_milestones")
-    .select("id, name, description, required_modules_completed, emoji, order_index")
-    .eq("program_id", prog?.id ?? "")
-    .order("required_modules_completed", { ascending: true });
+  // Milestones — lintas SEMUA program ADV (active+completed) supaya yang sudah
+  // diraih selalu tampil, walau program yang sedang ditampilkan tak punya milestone.
+  const gradProgIds = [
+    ...new Set(
+      allEnrollments
+        .filter((e) => e.status === "active" || e.status === "completed")
+        .map((e) => e.program_id)
+    ),
+  ];
+  const progNameById = Object.fromEntries(
+    allEnrollments.map((e) => {
+      const p = Array.isArray(e.lms_programs) ? e.lms_programs[0] : e.lms_programs;
+      return [e.program_id, p?.name ?? ""];
+    })
+  );
 
-  const { data: achievedRaw } = await supabase
-    .from("lms_adv_milestones")
-    .select("milestone_id, achieved_at, status, certificate_url")
-    .eq("enrollment_id", enrollment.id)
-    .order("achieved_at", { ascending: false });
+  const { data: allMilestones } = gradProgIds.length
+    ? await supabase
+        .from("lms_milestones")
+        .select("id, name, description, required_modules_completed, emoji, program_id")
+        .in("program_id", gradProgIds)
+        .order("required_modules_completed", { ascending: true })
+    : { data: [] };
+
+  const { data: achievedRaw } = gradEnrollIds.length
+    ? await supabase
+        .from("lms_adv_milestones")
+        .select("milestone_id, achieved_at, status")
+        .in("enrollment_id", gradEnrollIds)
+        .order("achieved_at", { ascending: false })
+    : { data: [] };
 
   const achievedIds = new Set(
     (achievedRaw ?? []).filter((a) => a.status !== "rejected").map((a) => a.milestone_id)
   );
-  const achievedList = (milestones ?? []).filter((m) => achievedIds.has(m.id))
+
+  const ms = allMilestones ?? [];
+  const hasAnyMilestone = ms.length > 0;
+  // Diraih (lintas program), terbaru/threshold tertinggi dulu
+  const achievedList = ms
+    .filter((m) => achievedIds.has(m.id))
     .sort((a, b) => b.required_modules_completed - a.required_modules_completed);
-  const nextMilestone = (milestones ?? []).find((m) => !achievedIds.has(m.id));
   const latestAchieved = achievedList[0] ?? null;
+  // Target berikutnya hanya dari program yang sedang ditampilkan (progress bar valid)
+  const nextMilestone =
+    ms
+      .filter((m) => m.program_id === prog?.id && !achievedIds.has(m.id))
+      .sort((a, b) => a.required_modules_completed - b.required_modules_completed)[0] ?? null;
 
   return (
     <div className="space-y-8">
@@ -242,19 +270,19 @@ export default async function LmsDashboardPage() {
             <p className="text-sm font-semibold text-neutral-600">Milestone</p>
           </div>
 
-          {(milestones ?? []).length === 0 ? (
-            <p className="text-xs text-neutral-400 italic">
-              Belum ada milestone untuk program ini.
-            </p>
-          ) : latestAchieved ? (
+          {latestAchieved ? (
             <div className="space-y-3">
               <div className="flex items-center gap-2 rounded-2xl bg-yellow-50 px-3 py-2.5">
                 <span className="text-xl">{latestAchieved.emoji}</span>
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-yellow-800 truncate">{latestAchieved.name}</p>
-                  {latestAchieved.description && (
+                  {latestAchieved.program_id !== prog?.id ? (
+                    <p className="text-xs text-yellow-700 line-clamp-1">
+                      {progNameById[latestAchieved.program_id] ?? "Program lain"}
+                    </p>
+                  ) : latestAchieved.description ? (
                     <p className="text-xs text-yellow-700 line-clamp-1">{latestAchieved.description}</p>
-                  )}
+                  ) : null}
                 </div>
                 <CheckCircle2 className="h-4 w-4 shrink-0 text-yellow-600" />
               </div>
@@ -289,8 +317,10 @@ export default async function LmsDashboardPage() {
                 </div>
               </div>
             </div>
-          ) : (
+          ) : hasAnyMilestone ? (
             <p className="text-xs text-neutral-400 italic">Semua milestone telah diraih!</p>
+          ) : (
+            <p className="text-xs text-neutral-400 italic">Belum ada milestone untuk program ini.</p>
           )}
         </div>
       </div>
