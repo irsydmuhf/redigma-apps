@@ -9,6 +9,11 @@
   /* === Brand Redigma === */
   --brand-blue: #07569d;
   --brand-yellow: #ffc700;
+
+  /* Heading & tombol primer (neutral-900) → navy gelap brand, bukan hitam.
+     Di-set unlayered di :root agar menang atas @theme default Tailwind
+     (override neutral lewat @theme tidak diterapkan di Tailwind v4). */
+  --color-neutral-900: #062f56;
 }
 
 @theme inline {
@@ -37,10 +42,6 @@
 
   --color-yellow-400: #ffc700;
   --color-yellow-500: #ffc700;
-
-  /* Heading & tombol primer (pakai neutral-900) → navy gelap brand, bukan
-     hitam netral, supaya tetap mengutamakan branding namun tetap terbaca. */
-  --color-neutral-900: #062f56;
 }
 
 /* Funnel Display untuk heading di LMS */
