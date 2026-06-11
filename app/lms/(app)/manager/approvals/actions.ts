@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentLmsUser } from "@/lib/lms/current-user";
 import { generateCertificatePdf } from "@/lib/lms/certificate";
 import { notify } from "@/lib/lms/notify";
+import { sendEmailToUser, emailShell, lmsUrl } from "@/lib/lms/email";
 import { redirect } from "next/navigation";
 
 export async function approveEnrollment(enrollmentId: string) {
@@ -42,6 +43,15 @@ export async function approveEnrollment(enrollmentId: string) {
       body: `Kamu sekarang bisa mulai belajar di program ${prog?.name ?? ""}.`,
       link: "/lms/dashboard",
     });
+    await sendEmailToUser(
+      enr.user_id,
+      "Pendaftaran disetujui — Redigma LMS",
+      emailShell(
+        "Pendaftaran disetujui 🎉",
+        `Selamat! Pendaftaranmu ke program <b>${prog?.name ?? ""}</b> telah disetujui. Kamu sudah bisa mulai belajar.`,
+        { label: "Buka Dashboard", url: lmsUrl("/lms/dashboard") }
+      )
+    );
   }
 
   redirect(`/lms/manager/approvals?msg=${encodeURIComponent('Enrollment berhasil disetujui')}`);
@@ -76,6 +86,14 @@ export async function rejectEnrollment(enrollmentId: string) {
       body: `Pendaftaranmu ke program ${prog?.name ?? ""} belum disetujui. Hubungi Manager untuk info lebih lanjut.`,
       link: "/lms/dashboard",
     });
+    await sendEmailToUser(
+      enr.user_id,
+      "Status pendaftaran — Redigma LMS",
+      emailShell(
+        "Pendaftaran belum disetujui",
+        `Mohon maaf, pendaftaranmu ke program <b>${prog?.name ?? ""}</b> belum dapat disetujui saat ini. Silakan hubungi Manager untuk informasi lebih lanjut.`
+      )
+    );
   }
 
   redirect(`/lms/manager/approvals?msg=${encodeURIComponent('Enrollment berhasil ditolak')}`);
